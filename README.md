@@ -82,3 +82,18 @@ docker compose down
 - 인증은 JWT 기반 무상태(Stateless) 액세스 토큰 방식입니다.
 - 프론트(`http://localhost:8080`)는 로그인 role에 따라 선생님/학생 화면이 분리됩니다.
 - 학생 화면은 월간 캘린더 기반으로 슬롯을 조회하고 바로 예약/취소할 수 있습니다.
+
+## AI 협업 문서 운영
+- Gemini 메모: `GEMINI.md`
+- Codex 메모: `CODEX.md`
+- 일일 인수인계: `docs/handover-YYYY-MM-DD.md`
+
+매일 인수인계 스냅샷 생성:
+```bash
+bash /Users/ndh/workspace/scripts/daily-handover.sh
+```
+
+스모크 테스트까지 포함해 기록:
+```bash
+RUN_SMOKE=1 bash /Users/ndh/workspace/scripts/daily-handover.sh
+```
