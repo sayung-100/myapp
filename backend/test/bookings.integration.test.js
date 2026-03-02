@@ -125,7 +125,7 @@ async function seedBookableScenario({
       INSERT INTO teacher_profiles (
         teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days
       )
-      VALUES ($1, 60, 'UTC', $2, $3)
+      VALUES ($1, 60, 'Asia/Seoul', $2, $3)
     `,
     [teacherId, cancelCutoffHours, bookingWindowDays]
   );
