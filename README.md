@@ -29,7 +29,15 @@ docker compose up --build -d
 ```
 
 ## 3) 동작 확인
-- 프론트: `http://localhost:8080`
+- 로그인: `http://localhost:8080/index.html`
+- 학생 통합 대시보드: `http://localhost:8080/student.html`
+- 학생 캘린더: `http://localhost:8080/student-calendar.html`
+- 학생 예약 목록: `http://localhost:8080/student-bookings.html`
+- 선생님 통합 대시보드: `http://localhost:8080/teacher.html`
+- 선생님 캘린더: `http://localhost:8080/teacher-calendar.html`
+- 선생님 시간표/예외 관리: `http://localhost:8080/teacher-manage.html`
+- 선생님 예약 관리: `http://localhost:8080/teacher-bookings.html`
+- 사용자 설명서: `http://localhost:8080/guide.html`
 - 백엔드 헬스체크: `http://localhost:4000/health`
 - 프론트 프록시 헬스체크: `http://localhost:8080/api/health`
 
@@ -38,6 +46,12 @@ docker compose up --build -d
 docker compose run --rm backend npm run migrate
 docker compose run --rm backend npm run seed
 ```
+
+## 4-1) 백엔드 통합 테스트
+```bash
+docker compose run --rm backend npm test
+```
+- 주의: 테스트는 예약/시간표 관련 테이블을 초기화(`TRUNCATE ... RESTART IDENTITY`)합니다.
 
 ## 5) 중지
 ```bash
@@ -72,6 +86,7 @@ docker compose down
   - body: `{"teacher_user_id":1,"start_at":"2026-02-20T10:00:00+09:00"}`
 - `GET /api/v1/bookings/me` (student)
 - `GET /api/v1/teachers/me/bookings` (teacher)
+- `POST /api/v1/teachers/me/bookings/:id/approve` (teacher)
 - `POST /api/v1/bookings/:id/cancel` (student owner or teacher owner)
 
 시드 사용자 (비밀번호: `password123!`)
@@ -87,6 +102,7 @@ docker compose down
 - Gemini 메모: `GEMINI.md`
 - Codex 메모: `CODEX.md`
 - 일일 인수인계: `docs/handover-YYYY-MM-DD.md`
+- UI 리디자인 기록: `docs/ui-redesign-2026-02-24.md`
 
 매일 인수인계 스냅샷 생성:
 ```bash

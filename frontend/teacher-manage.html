@@ -1,0 +1,3032 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lesson Booking Workspace</title>
+    <style>
+      :root {
+        --bg: #f8f4ea;
+        --bg-soft: #eef5ff;
+        --panel: #ffffff;
+        --panel-strong: #0f2a43;
+        --line: #d4deea;
+        --line-strong: #a9bfd6;
+        --text: #10243a;
+        --muted: #5d7086;
+        --brand: #1363df;
+        --brand-soft: #e8f0ff;
+        --accent: #e28f39;
+        --ok: #13835e;
+        --warn: #a7552d;
+        --danger: #c93f3f;
+        --shadow: 0 18px 44px rgba(16, 36, 58, 0.11);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "IBM Plex Sans KR", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+        background:
+          radial-gradient(circle at 10% -10%, #d6e8ff 0%, rgba(214, 232, 255, 0) 35%),
+          radial-gradient(circle at 100% 0, #ffe2be 0%, rgba(255, 226, 190, 0) 30%),
+          linear-gradient(165deg, var(--bg) 0%, var(--bg-soft) 56%, #f5f9ff 100%);
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        margin: 0;
+      }
+
+      .wrap {
+        width: min(1320px, 94vw);
+        margin: 22px auto 46px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .topbar {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(6px);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 10px;
+        z-index: 20;
+      }
+
+      .brand {
+        display: grid;
+        gap: 4px;
+      }
+
+      .brand strong {
+        letter-spacing: -0.02em;
+        font-size: 18px;
+      }
+
+      .brand small {
+        color: var(--muted);
+      }
+
+      .top-links {
+        display: inline-flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .top-links a {
+        text-decoration: none;
+        color: #173a64;
+        background: #edf3ff;
+        border: 1px solid #cfddf4;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .top-links a:hover {
+        background: #dfeaff;
+      }
+
+      .top-links button {
+        border: 1px solid #f3c7c7;
+        background: #fdeaea;
+        color: #c93f3f;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .top-links button:hover {
+        filter: brightness(0.97);
+      }
+
+      .hero {
+        border: 1px solid #c8d8eb;
+        border-radius: 18px;
+        padding: 22px;
+        background:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 247, 255, 0.92)),
+          linear-gradient(180deg, #ffffff, #f7fbff);
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 10px;
+      }
+
+      .hero h1 {
+        font-size: clamp(24px, 3vw, 34px);
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+      }
+
+      .hero p {
+        color: var(--muted);
+        max-width: 860px;
+      }
+
+      .hero-points {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .hero-points span {
+        background: #f2f6fb;
+        border: 1px solid #d8e2ee;
+        border-radius: 999px;
+        padding: 6px 11px;
+        font-size: 12px;
+        color: #35516d;
+        font-weight: 600;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+
+      .panel-title {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .panel-title h2 {
+        font-size: 21px;
+        letter-spacing: -0.02em;
+      }
+
+      .panel-title p {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .auth-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .subpanel {
+        border: 1px solid #dbe5f2;
+        border-radius: 14px;
+        background: #fdfefe;
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .subpanel h3 {
+        font-size: 16px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid.three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      label {
+        display: grid;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid #cfdceb;
+        border-radius: 10px;
+        padding: 9px 10px;
+        background: #fff;
+        color: var(--text);
+      }
+
+      textarea {
+        resize: vertical;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 1px solid #cdd8e6;
+        border-radius: 10px;
+        background: #eff4fb;
+        color: #21405f;
+        padding: 8px 12px;
+        min-height: 38px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 16px rgba(33, 64, 95, 0.12);
+      }
+
+      button.primary {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+      }
+
+      button.warn {
+        background: #fff1df;
+        border-color: #f0cc98;
+        color: var(--warn);
+      }
+
+      button.danger {
+        background: #fdeaea;
+        border-color: #f3c7c7;
+        color: var(--danger);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .status {
+        border: 1px solid #cad9ec;
+        border-radius: 10px;
+        background: #f5f9ff;
+        padding: 10px;
+        font-size: 13px;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .role-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        width: fit-content;
+        border-radius: 999px;
+        background: #1f3f66;
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 6px 11px;
+      }
+
+      .quick-help {
+        border-radius: 12px;
+        border: 1px dashed #c5d6e8;
+        background: #f7fbff;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .workspace-layout {
+        display: grid;
+        grid-template-columns: 200px minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .workspace-nav {
+        border: 1px solid #d7e1ef;
+        border-radius: 12px;
+        background: #f8fbff;
+        padding: 10px;
+        display: grid;
+        gap: 6px;
+        position: sticky;
+        top: 132px;
+        height: fit-content;
+      }
+
+      .workspace-nav strong {
+        font-size: 13px;
+        color: #284868;
+      }
+
+      .workspace-nav a {
+        text-decoration: none;
+        border: 1px solid #d3deea;
+        background: #fff;
+        color: #2c4967;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .workspace-nav a.active {
+        border-color: #1363df;
+        background: #1363df;
+        color: #fff;
+      }
+
+      .workspace-content {
+        min-width: 0;
+      }
+
+      .quick-help ol {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 6px;
+        color: #3e5873;
+        font-size: 13px;
+      }
+
+      .stats {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 12px;
+      }
+
+      .stat-card {
+        border: 1px solid #d6e1ef;
+        border-radius: 14px;
+        background: linear-gradient(160deg, #fff, #f7fbff);
+        padding: 11px;
+        display: grid;
+        gap: 4px;
+      }
+
+      .stat-card strong {
+        font-size: 23px;
+        letter-spacing: -0.02em;
+      }
+
+      .stat-card span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .meta-strip {
+        border: 1px solid #d5e2f2;
+        border-radius: 12px;
+        background: #f4f8ff;
+        padding: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #d6e2ef;
+        padding: 5px 9px;
+        font-size: 12px;
+        color: #37516d;
+        font-weight: 600;
+      }
+
+      .calendar-toolbar {
+        border: 1px solid #d7e2ef;
+        border-radius: 14px;
+        background: #fbfdff;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 86px;
+        z-index: 12;
+      }
+
+      .calendar-toolbar .left,
+      .calendar-toolbar .right {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .calendar-toolbar .month-label {
+        min-width: 110px;
+        text-align: center;
+        font-size: 18px;
+      }
+
+      .calendar-shell {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        margin-top: 12px;
+      }
+
+      .calendar-card,
+      .slot-card {
+        border: 1px solid #d7e2f0;
+        border-radius: 14px;
+        background: #fff;
+        padding: 12px;
+      }
+
+      .calendar-head {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+        margin-bottom: 7px;
+      }
+
+      .calendar-head div {
+        text-align: center;
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .calendar-grid {
+        border: 1px solid #d7e2f0;
+        border-radius: 10px;
+        overflow: auto;
+        max-height: 660px;
+        background: #fff;
+      }
+
+      .week-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .week-table th,
+      .week-table td {
+        border: 1px solid #edf2f8;
+        padding: 0;
+        vertical-align: top;
+      }
+
+      .week-time-head {
+        width: 64px;
+        background: #f6f9fe;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .week-day-head {
+        background: #f6f9fe;
+        text-align: center;
+        font-size: 11px;
+        line-height: 1.3;
+        padding: 6px 2px;
+        color: #38536f;
+      }
+
+      .week-day-head strong {
+        display: block;
+        color: #183b61;
+        font-size: 12px;
+      }
+
+      .week-time {
+        width: 64px;
+        font-size: 10px;
+        color: #6f8298;
+        text-align: center;
+        background: #fbfdff;
+        padding-top: 3px;
+      }
+
+      .week-cell {
+        height: 22px;
+        position: relative;
+        background: #fff;
+        user-select: none;
+      }
+
+      .week-cell.selected {
+        background: #eef5ff;
+      }
+
+      .week-cell.past {
+        background: #f9fbfd;
+      }
+
+      .week-cell.has-available {
+        background: #f6fff9;
+      }
+
+      .week-cell.drag-range {
+        background: #e6f0ff;
+      }
+
+      .week-cell.drag-anchor {
+        box-shadow: inset 0 0 0 2px #4b7ec3;
+      }
+
+      .week-slot-btn,
+      .week-create-btn {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+        margin: 0;
+        padding: 0 4px;
+        min-height: 22px;
+        font-size: 10px;
+        font-weight: 700;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .week-slot-btn.available {
+        color: #0f7d55;
+        background: #dff7ea;
+      }
+
+      .week-slot-btn.booked {
+        color: #7c8da0;
+        background: #eef3f8;
+      }
+
+      .week-create-btn {
+        color: #6c8098;
+        background: transparent;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .week-cell:hover .week-create-btn {
+        opacity: 1;
+        background: #edf4ff;
+      }
+
+      .week-teacher-cell.has-window {
+        background: #fff8ec;
+      }
+
+      .week-teacher-window {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        border-radius: 0;
+        min-height: 22px;
+        padding: 0 4px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #9f5a1d;
+        background: #ffe8c9;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .week-booked-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        font-size: 10px;
+        font-weight: 700;
+        color: #325e95;
+        background: #e4efff;
+      }
+
+      .slot-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .slot-summary {
+        border: 1px solid #d5e2f2;
+        background: #f5f9ff;
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 12px;
+        color: #35516d;
+        margin-bottom: 10px;
+      }
+
+      .slot-item {
+        border: 1px solid #d5e0eb;
+        border-radius: 11px;
+        background: #fff;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .slot-item:not(.booked) {
+        border-color: #b9d5c8;
+        background: #f6fff9;
+      }
+
+      .slot-item.booked {
+        background: #f3f6fa;
+        color: #75859a;
+      }
+
+      .slot-item strong {
+        font-size: 13px;
+      }
+
+      .slot-item small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .table-card {
+        margin-top: 14px;
+        border: 1px solid #d7e1ef;
+        border-radius: 14px;
+        background: #fff;
+        padding: 10px;
+      }
+
+      .table-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid #edf2f8;
+        border-radius: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-top: 1px solid #edf2f8;
+        text-align: left;
+        padding: 8px 4px;
+        font-size: 13px;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #fbfdff;
+      }
+
+      tbody tr:hover {
+        background: #f1f7ff;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid transparent;
+        white-space: nowrap;
+      }
+
+      .status-BOOKED,
+      .status-AVAILABLE,
+      .status-TRUE {
+        background: #e8f8f1;
+        border-color: #b9e3cd;
+        color: #0f7d55;
+      }
+
+      .status-PENDING {
+        background: #fff7e8;
+        border-color: #f1d5a8;
+        color: #9a5a12;
+      }
+
+      .status-CANCELED_BY_STUDENT,
+      .status-CANCELED_BY_TEACHER,
+      .status-FALSE {
+        background: #fff0f0;
+        border-color: #f0c8c8;
+        color: #b73a3a;
+      }
+
+      .status-COMPLETED {
+        background: #ebf3ff;
+        border-color: #c8dafa;
+        color: #2f5f9c;
+      }
+
+      .status-NO_SHOW {
+        background: #fff4e8;
+        border-color: #f3d7b8;
+        color: #9f5a1d;
+      }
+
+      details.log-panel {
+        border: 1px solid #20334d;
+        border-radius: 14px;
+        background: #0f1a2a;
+        color: #d6e4f8;
+        overflow: hidden;
+      }
+
+      details.log-panel summary {
+        padding: 11px 13px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .drag-hint {
+        position: fixed;
+        z-index: 1200;
+        pointer-events: none;
+        border: 1px solid #214a7b;
+        background: rgba(16, 36, 58, 0.94);
+        color: #e8f0ff;
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1300;
+        background: rgba(13, 26, 43, 0.58);
+        display: grid;
+        place-items: center;
+        padding: 16px;
+      }
+
+      .modal-card {
+        width: min(560px, 96vw);
+        max-height: min(90vh, 880px);
+        overflow: auto;
+        border-radius: 16px;
+        border: 1px solid #d0ddef;
+        background: #fff;
+        box-shadow: 0 24px 48px rgba(8, 18, 32, 0.28);
+        padding: 14px;
+      }
+
+      .modal-card .panel-title {
+        margin-bottom: 10px;
+      }
+
+      #log {
+        margin: 0;
+        min-height: 170px;
+        max-height: 420px;
+        overflow: auto;
+        padding: 11px 13px 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.09);
+        font-size: 12px;
+      }
+
+      .reveal {
+        animation: rise 0.45s ease both;
+      }
+
+      .stagger > * {
+        opacity: 0;
+        animation: rise 0.45s ease both;
+      }
+
+      .stagger > *:nth-child(1) {
+        animation-delay: 0.04s;
+      }
+
+      .stagger > *:nth-child(2) {
+        animation-delay: 0.09s;
+      }
+
+      .stagger > *:nth-child(3) {
+        animation-delay: 0.14s;
+      }
+
+      .stagger > *:nth-child(4) {
+        animation-delay: 0.19s;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 1080px) {
+        .auth-layout,
+        .calendar-shell,
+        .grid.three,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+
+        .workspace-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .workspace-nav {
+          position: static;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .calendar-toolbar {
+          align-items: stretch;
+        }
+
+        .calendar-toolbar .right,
+        .calendar-toolbar .left {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .grid.two {
+          grid-template-columns: 1fr;
+        }
+
+        .workspace-nav {
+          grid-template-columns: 1fr;
+        }
+
+        .modal-backdrop {
+          padding: 0;
+        }
+
+        .modal-card {
+          width: 100vw;
+          max-width: none;
+          min-height: 100dvh;
+          max-height: 100dvh;
+          border-radius: 0;
+          border: 0;
+          padding: 14px 12px 18px;
+        }
+
+        .day-cell {
+          min-height: 74px;
+        }
+
+        .hero {
+          padding: 16px;
+        }
+
+        .topbar,
+        .panel {
+          padding: 12px;
+        }
+      }
+
+      body.mode-teacher #authPanel,
+      body.mode-teacher #studentView {
+        display: none !important;
+      }
+
+      body.mode-teacher .top-links a[href='/teacher.html'] {
+        background: #1363df;
+        color: #fff;
+        border-color: #1363df;
+      }
+    </style>
+  </head>
+  <body class="mode-teacher">
+    <main class="wrap">
+      <nav class="topbar reveal">
+        <div class="brand">
+          <strong>Lesson Booking Workspace</strong>
+          <small>캘린더 기반 예약 운영 화면</small>
+        </div>
+        <div class="top-links">
+          <a href="/index.html">로그인</a>
+          <a href="/student.html">학생</a>
+          <a href="/teacher.html">선생님</a>
+          <a href="/guide.html">사용자 설명서</a>
+          <button id="topLogoutBtn" type="button">로그아웃</button>
+        </div>
+      </nav>
+
+      <header class="hero reveal">
+        <h1>예약 가능한 시간은 빠르게 확인하고, 취소/변경은 정책에 맞게 처리합니다.</h1>
+        <p>학생은 월간 캘린더에서 즉시 예약하고, 선생님은 주간 시간표와 예외일정을 분리 관리할 수 있습니다. API 상태는 하단 로그에서 실시간으로 추적됩니다.</p>
+        <div class="hero-points">
+          <span>월간 탐색 + Today 이동</span>
+          <span>예약 가능/불가 즉시 구분</span>
+          <span>역할별 화면 자동 전환</span>
+          <span>취소 컷오프 정책 반영</span>
+        </div>
+      </header>
+
+      <section id="authPanel" class="panel reveal">
+        <div class="panel-title">
+          <h2>인증 및 세션</h2>
+          <p>교사/학생 계정으로 로그인하면 해당 화면만 노출됩니다.</p>
+        </div>
+
+        <div class="auth-layout">
+          <div class="subpanel">
+            <h3>로그인</h3>
+            <form id="loginForm" class="grid stagger">
+              <div class="grid two">
+                <label>이메일 <input name="email" value="teacher@example.com" required /></label>
+                <label>비밀번호 <input name="password" type="password" value="password123!" required /></label>
+              </div>
+              <div class="actions">
+                <button class="primary" type="submit">로그인</button>
+                <button id="teacherPreset" type="button">교사 프리셋</button>
+                <button id="studentPreset" type="button">학생 프리셋</button>
+                <button id="healthBtn" type="button">헬스체크</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="subpanel">
+            <h3>회원가입</h3>
+            <form id="registerForm" class="grid stagger">
+              <div class="grid two">
+                <label>이름 <input name="name" placeholder="테스터" required /></label>
+                <label>역할
+                  <select name="role">
+                    <option value="STUDENT">STUDENT</option>
+                    <option value="TEACHER">TEACHER</option>
+                  </select>
+                </label>
+              </div>
+              <div class="grid two">
+                <label>이메일 <input name="email" type="email" placeholder="new@example.com" required /></label>
+                <label>비밀번호 <input name="password" type="password" minlength="8" required /></label>
+              </div>
+              <div class="actions">
+                <button type="submit">회원가입</button>
+                <button id="meBtn" type="button">내 정보</button>
+                <button id="logoutBtn" class="danger" type="button">로그아웃</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid two" style="margin-top: 10px">
+          <div class="grid">
+            <label>토큰 <textarea id="tokenBox" rows="3" class="mono" readonly></textarea></label>
+            <div id="authStatus" class="status">로그인되지 않았습니다.</div>
+            <div id="rolePill" class="role-pill hidden"></div>
+          </div>
+          <aside class="quick-help">
+            <strong>빠른 시작</strong>
+            <ol>
+              <li>교사 계정으로 로그인 후 시간표/예외를 먼저 등록합니다.</li>
+              <li>학생 계정으로 전환해 선생님과 날짜를 선택합니다.</li>
+              <li>하단 예약 목록에서 취소 가능 상태를 확인합니다.</li>
+            </ol>
+          </aside>
+        </div>
+      </section>
+
+      <section id="studentView" class="panel hidden reveal">
+        <div class="panel-title">
+          <h2>학생 예약 대시보드</h2>
+          <p>주간 타임테이블에서 원하는 시간을 클릭해 수강신청할 수 있습니다.</p>
+        </div>
+
+        <div class="workspace-layout">
+          <aside class="workspace-nav">
+            <strong>학생 페이지</strong>
+            <a href="/student-calendar.html" data-nav-section="calendar">수업 캘린더</a>
+            <a href="/student-bookings.html" data-nav-section="bookings">내 예약 목록</a>
+            <a href="/student.html" data-nav-section="all">통합 보기</a>
+          </aside>
+
+          <div class="workspace-content">
+            <section id="studentCalendarSection">
+              <div class="stats">
+                <article class="stat-card">
+                  <strong id="studentTotalSlots">0</strong>
+                  <span>이번 주 생성 슬롯</span>
+                </article>
+                <article class="stat-card">
+                  <strong id="studentOpenSlots">0</strong>
+                  <span>예약 가능한 슬롯</span>
+                </article>
+                <article class="stat-card">
+                  <strong id="studentActiveBookings">0</strong>
+                  <span>내 활성 예약 건수</span>
+                </article>
+              </div>
+
+              <div class="meta-strip">
+                <span id="studentTeacherMeta" class="meta-chip">선생님을 선택하세요</span>
+                <span id="studentPolicyWindow" class="meta-chip">예약 가능 범위: -</span>
+                <span id="studentPolicyCutoff" class="meta-chip">취소 마감: -</span>
+              </div>
+
+              <div class="calendar-toolbar">
+                <div class="left">
+                  <label style="min-width: 260px">
+                    선생님 선택
+                    <select id="teacherSelect"></select>
+                  </label>
+                  <button id="teachersRefreshBtn" type="button">선생님 새로고침</button>
+                </div>
+
+                <div class="right">
+                  <button id="prevMonthBtn" type="button">이전 주</button>
+                  <strong id="monthLabel" class="month-label mono"></strong>
+                  <button id="nextMonthBtn" type="button">다음 주</button>
+                  <button id="todayBtn" type="button" class="warn">Today</button>
+                  <button id="monthRefreshBtn" type="button" class="primary">주간 새로고침</button>
+                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px">
+                    격자
+                    <select id="studentGridStep" style="width: auto">
+                      <option value="60">60분</option>
+                      <option value="30">30분</option>
+                      <option value="15" selected>15분</option>
+                      <option value="10">10분</option>
+                    </select>
+                  </label>
+                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px">
+                    <input id="availableOnlyToggle" type="checkbox" style="width: auto" /> 예약 가능만 보기
+                  </label>
+                </div>
+              </div>
+
+              <div class="calendar-shell">
+                <article class="calendar-card">
+                  <div id="calendarGrid" class="calendar-grid"></div>
+                  <p class="hint" style="margin-top: 9px">예약 가능한 칸을 클릭하면 즉시 수강신청됩니다.</p>
+                </article>
+
+                <article class="slot-card">
+                  <h3 id="selectedDateLabel">선택한 날짜</h3>
+                  <p class="hint" style="margin-top: 4px; margin-bottom: 10px">시간을 선택하면 바로 예약 요청이 전송됩니다.</p>
+                  <div id="daySlotSummary" class="slot-summary">총 0개 · 예약 가능 0개 · 마감 0개</div>
+                  <div id="daySlotsList" class="slot-list"></div>
+                </article>
+              </div>
+            </section>
+
+            <section id="studentBookingsSection">
+              <article class="table-card">
+                <div class="table-head">
+                  <h3>내 예약 목록</h3>
+                  <button id="myBookingsRefreshBtn" type="button">새로고침</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>선생님</th>
+                        <th>start</th>
+                        <th>end</th>
+                        <th>status</th>
+                        <th>동작</th>
+                      </tr>
+                    </thead>
+                    <tbody id="myBookingsBody"></tbody>
+                  </table>
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section id="teacherView" class="panel hidden reveal">
+        <div class="panel-title">
+          <h2>선생님 운영 대시보드</h2>
+          <p>주간 반복 시간표와 특정 날짜 예외를 분리해 관리합니다.</p>
+        </div>
+
+        <div class="workspace-layout">
+          <aside class="workspace-nav">
+            <strong>선생님 페이지</strong>
+            <a href="/teacher-calendar.html" data-nav-section="calendar">캘린더</a>
+            <a href="/teacher-manage.html" data-nav-section="manage">시간표/예외 관리</a>
+            <a href="/teacher-bookings.html" data-nav-section="bookings">예약 승인/취소</a>
+            <a href="/teacher.html" data-nav-section="all">통합 보기</a>
+          </aside>
+
+          <div class="workspace-content">
+            <div class="stats">
+              <article class="stat-card">
+                <strong id="teacherAvailCount">0</strong>
+                <span>활성 시간표 수</span>
+              </article>
+              <article class="stat-card">
+                <strong id="teacherExceptionCount">0</strong>
+                <span>등록된 예외 수</span>
+              </article>
+              <article class="stat-card">
+                <strong id="teacherActiveBookingCount">0</strong>
+                <span>진행 중 예약 수</span>
+              </article>
+            </div>
+
+            <section id="teacherCalendarSection">
+              <div class="calendar-toolbar" style="margin-bottom: 12px">
+                <div class="left">
+                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px">
+                    수업 길이
+                    <select id="teacherDurationSelect" style="width: auto">
+                      <option value="60">60분</option>
+                      <option value="30">30분</option>
+                      <option value="15" selected>15분</option>
+                      <option value="10">10분</option>
+                    </select>
+                  </label>
+                  <button id="teacherDurationSaveBtn" class="primary" type="button">길이 저장</button>
+                  <span class="hint">빈 칸 드래그로 수업창을 만들 수 있습니다. 기본은 단일 생성입니다.</span>
+                </div>
+                <div class="right">
+                  <button id="teacherPrevWeekBtn" type="button">이전 주</button>
+                  <strong id="teacherWeekLabel" class="month-label mono"></strong>
+                  <button id="teacherNextWeekBtn" type="button">다음 주</button>
+                  <button id="teacherTodayBtn" class="warn" type="button">This Week</button>
+                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px">
+                    격자
+                    <select id="teacherGridStep" style="width: auto">
+                      <option value="60">60분</option>
+                      <option value="30">30분</option>
+                      <option value="15" selected>15분</option>
+                      <option value="10">10분</option>
+                    </select>
+                  </label>
+                  <button id="teacherWeekRefreshBtn" type="button">캘린더 새로고침</button>
+                </div>
+              </div>
+
+              <article class="calendar-card" style="margin-bottom: 12px">
+                <div id="teacherCalendarGrid" class="calendar-grid"></div>
+              </article>
+            </section>
+
+            <section id="teacherManageSection">
+              <div class="grid two">
+                <article class="subpanel">
+                  <h3>시간표(Availability)</h3>
+                  <form id="availabilityForm" class="grid">
+                    <div class="grid three">
+                      <label>ID(수정/삭제) <input name="id" type="number" min="1" placeholder="예: 1" /></label>
+                      <label>요일(0~6) <input name="weekday" type="number" min="0" max="6" value="1" required /></label>
+                      <label>활성 여부
+                        <select name="is_active">
+                          <option value="true">활성 (학생에게 노출)</option>
+                          <option value="false">비활성 (숨김)</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="grid two">
+                      <label>시작시간 <input name="start_time_local" value="09:00" required /></label>
+                      <label>종료시간 <input name="end_time_local" value="12:00" required /></label>
+                    </div>
+                    <div class="grid two">
+                      <label>수업명 <input name="lesson_title" placeholder="예: 회화 입문" /></label>
+                      <label>메모 <input name="lesson_note" placeholder="예: 교재 2단원" /></label>
+                    </div>
+                  </form>
+                  <p class="hint">활성 여부: `활성`이면 학생 캘린더에 노출되고, `비활성`이면 저장된 시간표라도 슬롯을 열지 않습니다.</p>
+                  <div class="actions">
+                    <button id="availabilityCreateBtn" class="primary" type="button">등록</button>
+                    <button id="availabilityUpdateBtn" type="button">수정</button>
+                    <button id="availabilityDeleteBtn" class="danger" type="button">삭제</button>
+                    <button id="availabilityRefreshBtn" type="button">새로고침</button>
+                  </div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>weekday</th>
+                          <th>start</th>
+                          <th>end</th>
+                          <th>title</th>
+                          <th>active</th>
+                          <th>동작</th>
+                        </tr>
+                      </thead>
+                      <tbody id="availabilityBody"></tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="subpanel">
+                  <h3>예외(Exceptions)</h3>
+                  <form id="exceptionForm" class="grid">
+                    <div class="grid three">
+                      <label>ID(삭제) <input name="id" type="number" min="1" placeholder="예: 1" /></label>
+                      <label>날짜 <input name="date_local" value="2026-02-21" required /></label>
+                      <label>사유 <input name="reason" placeholder="휴무" /></label>
+                    </div>
+                    <div class="grid two">
+                      <label>시작시간(선택) <input name="start_time_local" placeholder="10:00" /></label>
+                      <label>종료시간(선택) <input name="end_time_local" placeholder="11:00" /></label>
+                    </div>
+                  </form>
+                  <div class="actions">
+                    <button id="exceptionCreateBtn" class="primary" type="button">등록</button>
+                    <button id="exceptionDeleteBtn" class="danger" type="button">삭제</button>
+                    <button id="exceptionRefreshBtn" type="button">새로고침</button>
+                  </div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>date</th>
+                          <th>start</th>
+                          <th>end</th>
+                          <th>reason</th>
+                          <th>동작</th>
+                        </tr>
+                      </thead>
+                      <tbody id="exceptionBody"></tbody>
+                    </table>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section id="teacherBookingsSection">
+              <article class="table-card">
+                <div class="table-head">
+                  <h3>내 예약 목록</h3>
+                  <button id="teacherBookingsRefreshBtn" type="button">새로고침</button>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>학생</th>
+                        <th>start</th>
+                        <th>end</th>
+                        <th>status</th>
+                        <th>동작</th>
+                      </tr>
+                    </thead>
+                    <tbody id="teacherBookingsBody"></tbody>
+                  </table>
+                </div>
+              </article>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <details class="log-panel">
+        <summary>API 로그</summary>
+        <pre id="log"></pre>
+      </details>
+    </main>
+    <div id="teacherDragHint" class="drag-hint hidden"></div>
+    <div id="teacherCreateModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="teacherCreateTitle">
+      <div class="modal-card">
+        <div class="panel-title">
+          <h3 id="teacherCreateTitle">수업 일정 생성</h3>
+          <p>드래그한 범위를 확인하고 반복 여부를 선택하세요.</p>
+        </div>
+        <form id="teacherCreateForm" class="grid">
+          <div class="grid two">
+            <label>날짜 <input name="date_local" readonly /></label>
+            <label>반복
+              <select name="repeat_mode">
+                <option value="single">단일 생성</option>
+                <option value="weekly">매주 반복 생성</option>
+              </select>
+            </label>
+          </div>
+          <div class="grid two">
+            <label>시작시간 <input name="start_time_local" type="time" step="300" required /></label>
+            <label>종료시간 <input name="end_time_local" type="time" step="300" required /></label>
+          </div>
+          <div class="grid two">
+            <label>수업명(표시용) <input name="class_title" placeholder="예: 회화 입문" /></label>
+            <label>활성 여부
+              <select name="is_active">
+                <option value="true">활성 (학생에게 노출)</option>
+                <option value="false">비활성 (숨김)</option>
+              </select>
+            </label>
+          </div>
+          <label>메모(표시용) <textarea name="class_note" rows="3" placeholder="준비물, 과제, 안내사항 등"></textarea></label>
+          <p class="hint">단일 생성을 선택하면 동일 요일/시간은 예약 가능 범위 내에서 자동 차단해 1회성으로 동작합니다.</p>
+          <div class="actions">
+            <button id="teacherCreateCancelBtn" type="button">취소</button>
+            <button id="teacherCreateSaveBtn" class="primary" type="submit">일정 저장</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const state = {
+        token: localStorage.getItem('lb_token') || '',
+        user: null,
+        teachers: [],
+        selectedTeacherId: '',
+        monthCursor: (() => {
+          const d = new Date();
+          d.setHours(0, 0, 0, 0);
+          return d;
+        })(),
+        teacherWeekCursor: (() => {
+          const d = new Date();
+          d.setHours(0, 0, 0, 0);
+          return d;
+        })(),
+        selectedDateKey: '',
+        slotsByDate: {},
+        availableOnly: false,
+        studentGridStepMin: 15,
+        teacherGridStepMin: 15,
+        teacherProfile: null,
+        teacherDrag: null,
+        teacherDragEndedAt: 0,
+        studentBookings: [],
+        teacherAvailability: [],
+        teacherExceptions: [],
+        teacherBookings: [],
+        teacherCreateDraft: null,
+      };
+      const PAGE_MODE = 'TEACHER';
+      const PAGE_SECTION = 'manage';
+
+      const authStatus = document.getElementById('authStatus');
+      const rolePill = document.getElementById('rolePill');
+      const tokenBox = document.getElementById('tokenBox');
+      const logEl = document.getElementById('log');
+      const teacherView = document.getElementById('teacherView');
+      const studentView = document.getElementById('studentView');
+      const teacherSelect = document.getElementById('teacherSelect');
+      const monthLabel = document.getElementById('monthLabel');
+      const studentGridStep = document.getElementById('studentGridStep');
+      const calendarGrid = document.getElementById('calendarGrid');
+      const selectedDateLabel = document.getElementById('selectedDateLabel');
+      const daySlotSummary = document.getElementById('daySlotSummary');
+      const daySlotsList = document.getElementById('daySlotsList');
+      const myBookingsBody = document.getElementById('myBookingsBody');
+      const availabilityBody = document.getElementById('availabilityBody');
+      const exceptionBody = document.getElementById('exceptionBody');
+      const teacherBookingsBody = document.getElementById('teacherBookingsBody');
+
+      const studentTotalSlots = document.getElementById('studentTotalSlots');
+      const studentOpenSlots = document.getElementById('studentOpenSlots');
+      const studentActiveBookings = document.getElementById('studentActiveBookings');
+      const studentTeacherMeta = document.getElementById('studentTeacherMeta');
+      const studentPolicyWindow = document.getElementById('studentPolicyWindow');
+      const studentPolicyCutoff = document.getElementById('studentPolicyCutoff');
+
+      const teacherAvailCount = document.getElementById('teacherAvailCount');
+      const teacherExceptionCount = document.getElementById('teacherExceptionCount');
+      const teacherActiveBookingCount = document.getElementById('teacherActiveBookingCount');
+      const teacherWeekLabel = document.getElementById('teacherWeekLabel');
+      const teacherCalendarGrid = document.getElementById('teacherCalendarGrid');
+      const teacherGridStep = document.getElementById('teacherGridStep');
+      const teacherDurationSelect = document.getElementById('teacherDurationSelect');
+      const teacherDragHint = document.getElementById('teacherDragHint');
+      const teacherCreateModal = document.getElementById('teacherCreateModal');
+      const teacherCreateForm = document.getElementById('teacherCreateForm');
+
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const availabilityForm = document.getElementById('availabilityForm');
+      const exceptionForm = document.getElementById('exceptionForm');
+      const availableOnlyToggle = document.getElementById('availableOnlyToggle');
+      const sectionLinks = Array.from(document.querySelectorAll('[data-nav-section]'));
+
+      function nowStamp() {
+        return new Date().toLocaleTimeString('ko-KR', { hour12: false });
+      }
+
+      function pushLog(title, payload) {
+        const line = `[${nowStamp()}] ${title}\n${JSON.stringify(payload, null, 2)}\n\n`;
+        logEl.textContent = line + logEl.textContent;
+      }
+
+      function getErrorMessage(err) {
+        if (err?.payload?.error) return String(err.payload.error);
+        if (err?.message) return String(err.message);
+        return String(err);
+      }
+
+      async function runAction(label, fn) {
+        try {
+          await fn();
+        } catch (err) {
+          const message = getErrorMessage(err);
+          pushLog(`${label} FAILED`, { message, payload: err?.payload });
+          window.alert(`${label} 실패: ${message}`);
+        }
+      }
+
+      function formObject(form) {
+        return Object.fromEntries(new FormData(form).entries());
+      }
+
+      function parseRequiredId(value, label) {
+        const parsed = Number.parseInt(String(value || ''), 10);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          throw new Error(`${label}는 양의 정수여야 합니다.`);
+        }
+        return parsed;
+      }
+
+      function parseOptionalId(value) {
+        const parsed = Number.parseInt(String(value || ''), 10);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          return null;
+        }
+        return parsed;
+      }
+
+      function formatDateTime(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return String(iso);
+        return d.toLocaleString('ko-KR', { hour12: false });
+      }
+
+      function formatTime(iso) {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return '';
+        return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+      }
+
+      function statusText(status) {
+        const map = {
+          PENDING: '승인대기',
+          BOOKED: '예약확정',
+          CANCELED_BY_STUDENT: '학생취소',
+          CANCELED_BY_TEACHER: '선생님취소',
+          COMPLETED: '완료',
+          NO_SHOW: '노쇼',
+        };
+        return map[status] || status || '-';
+      }
+
+      function statusBadge(status) {
+        const safe = String(status || 'UNKNOWN').replace(/[^A-Z_]/g, '');
+        return `<span class="status-badge status-${safe}">${statusText(status)}</span>`;
+      }
+
+      function toDateKeyFromDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function toDateKeyFromIso(iso) {
+        const d = new Date(iso);
+        return Number.isNaN(d.getTime()) ? '' : toDateKeyFromDate(d);
+      }
+
+      function parseDateKey(key) {
+        return new Date(`${key}T00:00:00`);
+      }
+
+      function formatDateKeyLabel(dateKey) {
+        const d = parseDateKey(dateKey);
+        if (Number.isNaN(d.getTime())) return dateKey;
+        return d.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          weekday: 'short',
+        });
+      }
+
+      const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
+      function startOfWeek(date) {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - d.getDay());
+        return d;
+      }
+
+      function weekRange(cursorDate) {
+        const from = startOfWeek(cursorDate);
+        const to = new Date(from);
+        to.setDate(to.getDate() + 7);
+        return { from, to };
+      }
+
+      function formatWeekLabel(cursorDate) {
+        const start = startOfWeek(cursorDate);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        return `${start.getMonth() + 1}/${start.getDate()} - ${end.getMonth() + 1}/${end.getDate()}`;
+      }
+
+      function timeLabelFromMinutes(totalMinutes) {
+        const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+        const minutes = String(totalMinutes % 60).padStart(2, '0');
+        return `${hours}:${minutes}`;
+      }
+
+      function minutesFromTimeLocal(timeText) {
+        const [hh, mm] = String(timeText || '')
+          .slice(0, 5)
+          .split(':')
+          .map((v) => Number(v));
+        if (!Number.isInteger(hh) || !Number.isInteger(mm)) return null;
+        if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+        return hh * 60 + mm;
+      }
+
+      function addMinutesToLocalTime(timeText, addMinutes) {
+        const start = minutesFromTimeLocal(timeText);
+        if (start === null) return null;
+        const end = start + addMinutes;
+        if (end <= 0 || end > 24 * 60) return null;
+        return timeLabelFromMinutes(end);
+      }
+
+      function getCellMetaFromEventTarget(target) {
+        const cell = target?.closest?.('td.week-cell');
+        if (!cell) return null;
+        const dateKey = cell.getAttribute('data-date-key');
+        const minute = Number.parseInt(cell.getAttribute('data-minute') || '', 10);
+        if (!dateKey || !Number.isInteger(minute)) return null;
+        return { cell, dateKey, minute };
+      }
+
+      function getTeacherDragPreview(drag = state.teacherDrag) {
+        if (!drag) return null;
+
+        if (drag.mode === 'create') {
+          if (drag.dateKey !== drag.currentDateKey) return null;
+          const startMinute = Math.min(drag.startMinute, drag.currentMinute);
+          const endMinute = Math.max(drag.startMinute, drag.currentMinute);
+          const endMinuteExclusive = endMinute + drag.step;
+          if (endMinuteExclusive > 24 * 60) return null;
+          return {
+            mode: 'create',
+            dateKey: drag.dateKey,
+            weekday: parseDateKey(drag.dateKey).getDay(),
+            startMinute,
+            endMinute,
+            endMinuteExclusive,
+            durationMin: endMinuteExclusive - startMinute,
+          };
+        }
+
+        if (drag.mode === 'move') {
+          const startMinute = drag.currentMinute;
+          const endMinuteExclusive = startMinute + drag.originalDuration;
+          if (endMinuteExclusive > 24 * 60 || startMinute < 0) return null;
+          return {
+            mode: 'move',
+            availabilityId: drag.availabilityId,
+            dateKey: drag.currentDateKey,
+            weekday: parseDateKey(drag.currentDateKey).getDay(),
+            startMinute,
+            endMinute: endMinuteExclusive - drag.step,
+            endMinuteExclusive,
+            durationMin: drag.originalDuration,
+            originalWeekday: drag.originalWeekday,
+            originalStartMinute: drag.originalStartMinute,
+            originalEndMinuteExclusive: drag.originalEndMinuteExclusive,
+            isActive: drag.isActive,
+          };
+        }
+
+        if (drag.mode === 'resize') {
+          if (drag.dateKey !== drag.currentDateKey) return null;
+          const rawEndExclusive = drag.currentMinute + drag.step;
+          const endMinuteExclusive = Math.max(drag.startMinute + drag.step, rawEndExclusive);
+          if (endMinuteExclusive > 24 * 60) return null;
+          return {
+            mode: 'resize',
+            availabilityId: drag.availabilityId,
+            dateKey: drag.dateKey,
+            weekday: drag.originalWeekday,
+            startMinute: drag.startMinute,
+            endMinute: endMinuteExclusive - drag.step,
+            endMinuteExclusive,
+            durationMin: endMinuteExclusive - drag.startMinute,
+            originalWeekday: drag.originalWeekday,
+            originalStartMinute: drag.originalStartMinute,
+            originalEndMinuteExclusive: drag.originalEndMinuteExclusive,
+            isActive: drag.isActive,
+          };
+        }
+
+        return null;
+      }
+
+      function renderTeacherDragHint(preview) {
+        if (!preview || !state.teacherDrag) {
+          teacherDragHint.classList.add('hidden');
+          return;
+        }
+        const modeText = preview.mode === 'create' ? '생성' : preview.mode === 'move' ? '이동' : '길이조절';
+        const startText = timeLabelFromMinutes(preview.startMinute);
+        const endText = timeLabelFromMinutes(preview.endMinuteExclusive);
+        teacherDragHint.textContent = `${modeText} ${startText}-${endText} (${preview.durationMin}분)`;
+        const x = Math.min(window.innerWidth - 170, Math.max(8, (state.teacherDrag.pointerX || 20) + 14));
+        const y = Math.min(window.innerHeight - 40, Math.max(8, (state.teacherDrag.pointerY || 20) + 14));
+        teacherDragHint.style.left = `${x}px`;
+        teacherDragHint.style.top = `${y}px`;
+        teacherDragHint.classList.remove('hidden');
+      }
+
+      function applyPageSection(role) {
+        const setVisible = (id, visible) => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.classList.toggle('hidden', !visible);
+          }
+        };
+
+        if (role === 'STUDENT') {
+          const showCalendar = PAGE_SECTION === 'all' || PAGE_SECTION === 'calendar';
+          const showBookings = PAGE_SECTION === 'all' || PAGE_SECTION === 'bookings';
+          setVisible('studentCalendarSection', showCalendar);
+          setVisible('studentBookingsSection', showBookings);
+        }
+
+        if (role === 'TEACHER') {
+          const showCalendar = PAGE_SECTION === 'all' || PAGE_SECTION === 'calendar';
+          const showManage = PAGE_SECTION === 'all' || PAGE_SECTION === 'manage';
+          const showBookings = PAGE_SECTION === 'all' || PAGE_SECTION === 'bookings';
+          setVisible('teacherCalendarSection', showCalendar);
+          setVisible('teacherManageSection', showManage);
+          setVisible('teacherBookingsSection', showBookings);
+        }
+
+        for (const link of sectionLinks) {
+          link.classList.toggle('active', String(link.dataset.navSection || '') === PAGE_SECTION);
+        }
+      }
+
+      function renderAuth() {
+        tokenBox.value = state.token || '';
+        if (state.user) {
+          authStatus.textContent = `로그인: ${state.user.email} (${state.user.role})`;
+          rolePill.textContent = state.user.role === 'TEACHER' ? '선생님 모드' : '학생 모드';
+          rolePill.classList.remove('hidden');
+        } else if (state.token) {
+          authStatus.textContent = '토큰은 있으나 사용자 정보는 미확인 상태입니다.';
+          rolePill.classList.add('hidden');
+        } else {
+          authStatus.textContent = '로그인되지 않았습니다.';
+          rolePill.classList.add('hidden');
+        }
+
+        const role = state.user?.role;
+        teacherView.classList.toggle('hidden', role !== 'TEACHER');
+        studentView.classList.toggle('hidden', role !== 'STUDENT');
+        if (role) {
+          applyPageSection(role);
+        }
+      }
+
+      function setAuth(token, user) {
+        state.token = token || '';
+        state.user = user || null;
+        if (state.token) {
+          localStorage.setItem('lb_token', state.token);
+        } else {
+          localStorage.removeItem('lb_token');
+        }
+        renderAuth();
+      }
+
+      async function api(path, options = {}) {
+        const { method = 'GET', body, auth = false } = options;
+        const headers = {};
+        if (body !== undefined) headers['Content-Type'] = 'application/json';
+        if (auth) {
+          if (!state.token) throw new Error('로그인 토큰이 없습니다.');
+          headers.Authorization = `Bearer ${state.token}`;
+        }
+
+        const res = await fetch(path, {
+          method,
+          headers,
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+        });
+
+        const raw = await res.text();
+        let payload = { raw };
+        if (raw) {
+          try {
+            payload = JSON.parse(raw);
+          } catch (_) {
+            payload = { raw };
+          }
+        }
+
+        pushLog(`${method} ${path} -> ${res.status}`, payload);
+        if (!res.ok) {
+          const err = new Error(`${method} ${path} failed (${res.status})`);
+          err.payload = payload;
+          if (auth && res.status === 401) {
+            setAuth('', null);
+            window.location.href = '/index.html';
+          }
+          throw err;
+        }
+        return payload;
+      }
+
+      async function syncMe() {
+        if (!state.token) {
+          setAuth('', null);
+          return;
+        }
+        const result = await api('/api/v1/auth/me', { auth: true });
+        state.user = result.user;
+        renderAuth();
+      }
+
+      function renderTeachers(items) {
+        teacherSelect.innerHTML = '';
+        if (!items.length) {
+          teacherSelect.innerHTML = '<option value="">(선생님 없음)</option>';
+          state.selectedTeacherId = '';
+          renderStudentMeta();
+          return;
+        }
+
+        for (const teacher of items) {
+          const opt = document.createElement('option');
+          opt.value = String(teacher.id);
+          opt.textContent = `${teacher.name} (#${teacher.id}) · ${teacher.lesson_duration_min}분`;
+          teacherSelect.appendChild(opt);
+        }
+
+        if (!state.selectedTeacherId || !items.some((it) => String(it.id) === String(state.selectedTeacherId))) {
+          state.selectedTeacherId = String(items[0].id);
+        }
+        teacherSelect.value = state.selectedTeacherId;
+        renderStudentMeta();
+      }
+
+      function renderStudentMeta() {
+        const teacher = state.teachers.find((t) => String(t.id) === String(state.selectedTeacherId));
+        if (!teacher) {
+          studentTeacherMeta.textContent = '선생님을 선택하세요';
+          studentPolicyWindow.textContent = '예약 가능 범위: -';
+          studentPolicyCutoff.textContent = '취소 마감: -';
+          return;
+        }
+
+        studentTeacherMeta.textContent = `담당: ${teacher.name} · ${teacher.timezone}`;
+        studentPolicyWindow.textContent = `예약 가능 범위: 오늘부터 ${teacher.booking_window_days}일`;
+        studentPolicyCutoff.textContent = `학생 취소 마감: ${teacher.cancel_cutoff_hours}시간 전`;
+      }
+
+      async function loadTeachers() {
+        const result = await api('/api/v1/teachers', { auth: true });
+        state.teachers = result.items || [];
+        renderTeachers(state.teachers);
+      }
+
+      function getSlotsForDateKey(dateKey) {
+        return state.slotsByDate[dateKey] || [];
+      }
+
+      function pickDefaultSelectedDate() {
+        if (state.selectedDateKey && getSlotsForDateKey(state.selectedDateKey).length) return;
+
+        const keys = Object.keys(state.slotsByDate).sort();
+        const firstWithOpen = keys.find((key) => getSlotsForDateKey(key).some((it) => it.is_available));
+        state.selectedDateKey = firstWithOpen || keys[0] || '';
+      }
+
+      function renderStudentStats() {
+        const allSlots = Object.values(state.slotsByDate).flat();
+        const openSlots = allSlots.filter((slot) => slot.is_available);
+        const activeBookings = (state.studentBookings || []).filter((booking) =>
+          ['PENDING', 'BOOKED'].includes(booking.status)
+        );
+
+        studentTotalSlots.textContent = String(allSlots.length);
+        studentOpenSlots.textContent = String(openSlots.length);
+        studentActiveBookings.textContent = String(activeBookings.length);
+      }
+
+      function renderTeacherStats() {
+        const activeAvailability = (state.teacherAvailability || []).filter((row) => row.is_active);
+        const activeTeacherBookings = (state.teacherBookings || []).filter((row) =>
+          ['PENDING', 'BOOKED'].includes(row.status)
+        );
+
+        teacherAvailCount.textContent = String(activeAvailability.length);
+        teacherExceptionCount.textContent = String((state.teacherExceptions || []).length);
+        teacherActiveBookingCount.textContent = String(activeTeacherBookings.length);
+      }
+
+      function buildWeekDays(cursorDate) {
+        const start = startOfWeek(cursorDate);
+        return Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          return d;
+        });
+      }
+
+      function renderCalendar() {
+        monthLabel.textContent = formatWeekLabel(state.monthCursor);
+        const days = buildWeekDays(state.monthCursor);
+        const now = new Date();
+        const todayKey = toDateKeyFromDate(now);
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const step = Math.max(10, Number.parseInt(studentGridStep.value || state.studentGridStepMin, 10) || 15);
+        state.studentGridStepMin = step;
+
+        const slotByStart = new Map();
+        for (const [dateKey, slots] of Object.entries(state.slotsByDate || {})) {
+          for (const slot of slots) {
+            const d = new Date(slot.start_at);
+            if (Number.isNaN(d.getTime())) continue;
+            const minute = d.getHours() * 60 + d.getMinutes();
+            slotByStart.set(`${dateKey}|${minute}`, slot);
+          }
+        }
+
+        let rows = '';
+        for (let minute = 0; minute < 24 * 60; minute += step) {
+          let cells = '';
+          for (const day of days) {
+            const dateKey = toDateKeyFromDate(day);
+            const slot = slotByStart.get(`${dateKey}|${minute}`);
+            const classes = ['week-cell'];
+            if (dateKey === state.selectedDateKey) classes.push('selected');
+            if (dateKey < todayKey || (dateKey === todayKey && minute < nowMinutes)) classes.push('past');
+            if (slot?.is_available) classes.push('has-available');
+
+            let content = `<button type="button" class="week-create-btn" data-pick-date="${dateKey}">+</button>`;
+            if (slot?.is_available) {
+              const slotTitle = (slot.lesson_title || '').trim();
+              const label = slotTitle || '수강신청';
+              content = `<button type="button" class="week-slot-btn available" data-book-slot="${slot.start_at}" data-pick-date="${dateKey}" title="${escapeHtml(slotTitle || '예약 가능')}">${escapeHtml(label)}</button>`;
+            } else if (slot && !state.availableOnly) {
+              content = '<span class="week-booked-chip">마감</span>';
+            } else if (slot && state.availableOnly) {
+              content = '';
+            }
+
+            cells += `<td class="${classes.join(' ')}" data-pick-date="${dateKey}">${content}</td>`;
+          }
+          rows += `<tr><td class="week-time">${timeLabelFromMinutes(minute)}</td>${cells}</tr>`;
+        }
+
+        const header = days
+          .map((day, index) => {
+            const isToday = toDateKeyFromDate(day) === todayKey;
+            return `<th class="week-day-head"><strong>${WEEKDAY_LABELS[index]}${isToday ? ' · 오늘' : ''}</strong>${day.getMonth() + 1}/${day.getDate()}</th>`;
+          })
+          .join('');
+
+        calendarGrid.innerHTML = `
+          <table class="week-table">
+            <thead>
+              <tr>
+                <th class="week-time-head">시간</th>
+                ${header}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        `;
+
+        calendarGrid.onclick = (event) => {
+          const bookButton = event.target.closest('[data-book-slot]');
+          if (bookButton) {
+            const startAt = bookButton.getAttribute('data-book-slot');
+            const pickDate = bookButton.getAttribute('data-pick-date');
+            if (pickDate) state.selectedDateKey = pickDate;
+            runAction('수강신청', async () => {
+              await createBooking(startAt);
+              await loadSlotsForCurrentMonth();
+              await loadMyBookings();
+            });
+            return;
+          }
+
+          const pickTarget = event.target.closest('[data-pick-date]');
+          if (!pickTarget) return;
+          state.selectedDateKey = pickTarget.getAttribute('data-pick-date');
+          renderCalendar();
+          renderDaySlots();
+        };
+      }
+
+      function renderDaySlots() {
+        daySlotsList.innerHTML = '';
+        if (!state.selectedDateKey) {
+          selectedDateLabel.textContent = '선택 가능한 날짜가 없습니다.';
+          daySlotSummary.textContent = '총 0개 · 예약 가능 0개 · 마감 0개';
+          daySlotsList.innerHTML = '<div class="hint">캘린더 범위를 조정하거나 선생님을 변경해보세요.</div>';
+          return;
+        }
+
+        const date = parseDateKey(state.selectedDateKey);
+        selectedDateLabel.textContent = `${date.toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'long',
+        })}`;
+
+        const slots = [...getSlotsForDateKey(state.selectedDateKey)]
+          .filter((slot) => (state.availableOnly ? slot.is_available : true))
+          .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+        const openCount = slots.filter((slot) => slot.is_available).length;
+        const closedCount = slots.length - openCount;
+        daySlotSummary.textContent = `총 ${slots.length}개 · 예약 가능 ${openCount}개 · 마감 ${closedCount}개`;
+
+        if (!slots.length) {
+          daySlotsList.innerHTML = '<div class="hint">선택 조건에 맞는 슬롯이 없습니다.</div>';
+          return;
+        }
+
+        for (const slot of slots) {
+          const row = document.createElement('div');
+          row.className = `slot-item ${slot.is_available ? '' : 'booked'}`;
+
+          const info = document.createElement('div');
+          const slotTitle = escapeHtml(slot.lesson_title || '일반 수업');
+          info.innerHTML = `<strong>${formatTime(slot.start_at)} - ${formatTime(slot.end_at)}</strong><br /><small>${slotTitle} · ${slot.is_available ? '<span class="status-badge status-AVAILABLE">예약 가능</span>' : '이미 예약됨'}</small>`;
+
+          const action = document.createElement('button');
+          action.type = 'button';
+          action.textContent = slot.is_available ? '예약' : '예약됨';
+          action.disabled = !slot.is_available;
+          if (slot.is_available) action.className = 'primary';
+
+          action.addEventListener('click', () => {
+            runAction('예약 생성', async () => {
+              await createBooking(slot.start_at);
+              await loadSlotsForCurrentMonth();
+              await loadMyBookings();
+            });
+          });
+
+          row.appendChild(info);
+          row.appendChild(action);
+          daySlotsList.appendChild(row);
+        }
+      }
+
+      async function loadSlotsForCurrentMonth() {
+        const teacherId = parseOptionalId(teacherSelect.value || state.selectedTeacherId);
+        if (!teacherId) {
+          state.slotsByDate = {};
+          state.selectedDateKey = '';
+          renderCalendar();
+          renderDaySlots();
+          renderStudentStats();
+          return;
+        }
+        const { from, to } = weekRange(state.monthCursor);
+
+        const result = await api(
+          `/api/v1/teachers/${teacherId}/slots?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`,
+          { auth: true }
+        );
+
+        const grouped = {};
+        for (const slot of result.items || []) {
+          const key = toDateKeyFromIso(slot.start_at);
+          if (!grouped[key]) grouped[key] = [];
+          grouped[key].push(slot);
+        }
+
+        state.slotsByDate = grouped;
+        const today = new Date();
+        if (today >= from && today < to) {
+          state.selectedDateKey = toDateKeyFromDate(today);
+        }
+        pickDefaultSelectedDate();
+        renderCalendar();
+        renderDaySlots();
+        renderStudentStats();
+      }
+
+      async function loadTeacherProfile() {
+        const result = await api('/api/v1/teachers/me/profile', { auth: true });
+        state.teacherProfile = result.item || null;
+        const duration = String(state.teacherProfile?.lesson_duration_min || '15');
+        const hasOption = Array.from(teacherDurationSelect.options).some((opt) => opt.value === duration);
+        if (!hasOption) {
+          const option = document.createElement('option');
+          option.value = duration;
+          option.textContent = `${duration}분`;
+          teacherDurationSelect.appendChild(option);
+        }
+        teacherDurationSelect.value = duration;
+      }
+
+      function renderTeacherCalendar() {
+        teacherWeekLabel.textContent = formatWeekLabel(state.teacherWeekCursor);
+        const days = buildWeekDays(state.teacherWeekCursor);
+        const now = new Date();
+        const todayKey = toDateKeyFromDate(now);
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const step = Math.max(10, Number.parseInt(teacherGridStep.value || state.teacherGridStepMin, 10) || 15);
+        state.teacherGridStepMin = step;
+
+        const activeAvailability = (state.teacherAvailability || []).filter((row) => row.is_active);
+        const availabilityById = new Map((state.teacherAvailability || []).map((row) => [Number(row.id), row]));
+        const bookingStatusByStartKey = new Map();
+        for (const row of state.teacherBookings || []) {
+          if (!['PENDING', 'BOOKED'].includes(row.status)) continue;
+          const d = new Date(row.start_at);
+          if (Number.isNaN(d.getTime())) continue;
+          bookingStatusByStartKey.set(`${toDateKeyFromDate(d)}|${d.getHours() * 60 + d.getMinutes()}`, row.status);
+        }
+
+        let rows = '';
+        const dragPreview = getTeacherDragPreview();
+        for (let minute = 0; minute < 24 * 60; minute += step) {
+          let cells = '';
+          for (const day of days) {
+            const dateKey = toDateKeyFromDate(day);
+            const weekday = day.getDay();
+            const windows = activeAvailability.filter((row) => Number(row.weekday) === weekday);
+            let windowAtStart = null;
+            let hasWindow = false;
+
+            for (const row of windows) {
+              const startMin = minutesFromTimeLocal(row.start_time_local);
+              const endMin = minutesFromTimeLocal(row.end_time_local);
+              if (startMin === null || endMin === null) continue;
+              if (minute >= startMin && minute < endMin) hasWindow = true;
+              if (minute === startMin) windowAtStart = row;
+            }
+
+            const bookingStatusAtStart = bookingStatusByStartKey.get(`${dateKey}|${minute}`) || null;
+            const isBookedStart = Boolean(bookingStatusAtStart);
+            const classes = ['week-cell', 'week-teacher-cell'];
+            if (hasWindow) classes.push('has-window');
+            if (dateKey < todayKey || (dateKey === todayKey && minute < nowMinutes)) classes.push('past');
+            if (
+              dragPreview &&
+              dragPreview.dateKey === dateKey &&
+              minute >= dragPreview.startMinute &&
+              minute <= dragPreview.endMinute
+            ) {
+              classes.push('drag-range');
+            }
+            if (
+              state.teacherDrag &&
+              dateKey ===
+                (state.teacherDrag.mode === 'move' ? state.teacherDrag.currentDateKey : state.teacherDrag.dateKey) &&
+              minute ===
+                (state.teacherDrag.mode === 'move' ? state.teacherDrag.currentMinute : state.teacherDrag.startMinute)
+            ) {
+              classes.push('drag-anchor');
+            }
+
+            let content = `<button type="button" class="week-create-btn" data-create-teacher-slot="${dateKey}|${minute}">+</button>`;
+            if (isBookedStart) {
+              content =
+                bookingStatusAtStart === 'PENDING'
+                  ? '<span class="week-booked-chip">대기</span>'
+                  : '<span class="week-booked-chip">예약</span>';
+            } else if (windowAtStart) {
+              const title = escapeHtml((windowAtStart.lesson_title || '').trim() || '오픈');
+              content = `<button type="button" class="week-teacher-window" data-fill-availability-id="${windowAtStart.id}" data-drag-availability-id="${windowAtStart.id}" title="${title}">${title}</button>`;
+            } else if (hasWindow) {
+              content = '';
+            }
+
+            cells += `<td class="${classes.join(' ')}" data-date-key="${dateKey}" data-minute="${minute}">${content}</td>`;
+          }
+          rows += `<tr><td class="week-time">${timeLabelFromMinutes(minute)}</td>${cells}</tr>`;
+        }
+
+        const header = days
+          .map((day, index) => {
+            const isToday = toDateKeyFromDate(day) === todayKey;
+            return `<th class="week-day-head"><strong>${WEEKDAY_LABELS[index]}${isToday ? ' · 오늘' : ''}</strong>${day.getMonth() + 1}/${day.getDate()}</th>`;
+          })
+          .join('');
+
+        teacherCalendarGrid.innerHTML = `
+          <table class="week-table">
+            <thead>
+              <tr>
+                <th class="week-time-head">시간</th>
+                ${header}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        `;
+        renderTeacherDragHint(dragPreview);
+
+        teacherCalendarGrid.onclick = (event) => {
+          if (Date.now() - state.teacherDragEndedAt < 220) return;
+          const fillTarget = event.target.closest('[data-fill-availability-id]');
+          if (!fillTarget) return;
+          const id = Number.parseInt(fillTarget.getAttribute('data-fill-availability-id'), 10);
+          const row = state.teacherAvailability.find((it) => Number(it.id) === id);
+          if (!row) return;
+          availabilityForm.elements.id.value = String(row.id);
+          availabilityForm.elements.weekday.value = String(row.weekday);
+          availabilityForm.elements.start_time_local.value = String(row.start_time_local).slice(0, 5);
+          availabilityForm.elements.end_time_local.value = String(row.end_time_local).slice(0, 5);
+          availabilityForm.elements.is_active.value = row.is_active ? 'true' : 'false';
+          availabilityForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+
+        const finalizeTeacherDrag = () => {
+          const drag = state.teacherDrag;
+          const preview = getTeacherDragPreview(drag);
+          state.teacherDrag = null;
+          state.teacherDragEndedAt = Date.now();
+          renderTeacherCalendar();
+          if (!drag || !preview) return;
+          if (!drag.moved && preview.mode !== 'create') return;
+
+          const startTime = timeLabelFromMinutes(preview.startMinute);
+          const endTime = timeLabelFromMinutes(preview.endMinuteExclusive);
+
+          if (preview.mode === 'create') {
+            openTeacherCreateModal(preview);
+            return;
+          }
+
+          const noChange =
+            preview.weekday === preview.originalWeekday &&
+            preview.startMinute === preview.originalStartMinute &&
+            preview.endMinuteExclusive === preview.originalEndMinuteExclusive;
+          if (noChange) return;
+
+          runAction('클래스 수정', async () => {
+            const actionText = preview.mode === 'move' ? '이동' : '길이조절';
+            const ok = window.confirm(`${actionText}: ${preview.dateKey} ${startTime}-${endTime}로 변경할까요?`);
+            if (!ok) return;
+            await api(`/api/v1/teachers/me/availability/${preview.availabilityId}`, {
+              method: 'PATCH',
+              auth: true,
+              body: {
+                weekday: preview.weekday,
+                start_time_local: startTime,
+                end_time_local: endTime,
+                is_active: preview.isActive,
+              },
+            });
+            await loadTeacherAvailability();
+            await loadTeachers();
+            await loadSlotsForCurrentMonth();
+          });
+        };
+
+        teacherCalendarGrid.onmousedown = (event) => {
+          if (event.button !== 0) return;
+          const meta = getCellMetaFromEventTarget(event.target);
+          if (!meta) return;
+          event.preventDefault();
+          const dragAvailabilityTarget = event.target.closest('[data-drag-availability-id]');
+          if (dragAvailabilityTarget) {
+            const availabilityId = Number.parseInt(
+              dragAvailabilityTarget.getAttribute('data-drag-availability-id') || '',
+              10
+            );
+            const row = availabilityById.get(availabilityId);
+            const rowStartMinute = minutesFromTimeLocal(row?.start_time_local);
+            const rowEndMinuteExclusive = minutesFromTimeLocal(row?.end_time_local);
+            if (!row || rowStartMinute === null || rowEndMinuteExclusive === null) return;
+            const mode = event.shiftKey ? 'resize' : 'move';
+            state.teacherDrag = {
+              mode,
+              availabilityId,
+              dateKey: meta.dateKey,
+              startMinute: rowStartMinute,
+              currentDateKey: meta.dateKey,
+              currentMinute: mode === 'resize' ? rowEndMinuteExclusive - step : meta.minute,
+              originalWeekday: Number(row.weekday),
+              originalStartMinute: rowStartMinute,
+              originalEndMinuteExclusive: rowEndMinuteExclusive,
+              originalDuration: rowEndMinuteExclusive - rowStartMinute,
+              isActive: Boolean(row.is_active),
+              step,
+              moved: false,
+              pointerX: event.clientX,
+              pointerY: event.clientY,
+            };
+          } else {
+            state.teacherDrag = {
+              mode: 'create',
+              dateKey: meta.dateKey,
+              startMinute: meta.minute,
+              currentDateKey: meta.dateKey,
+              currentMinute: meta.minute,
+              step,
+              moved: false,
+              pointerX: event.clientX,
+              pointerY: event.clientY,
+            };
+          }
+          window.addEventListener(
+            'mouseup',
+            () => {
+              finalizeTeacherDrag();
+            },
+            { once: true }
+          );
+          renderTeacherCalendar();
+        };
+
+        teacherCalendarGrid.onmousemove = (event) => {
+          if (!state.teacherDrag) return;
+          const meta = getCellMetaFromEventTarget(event.target);
+          if (!meta) return;
+          if (state.teacherDrag.mode !== 'move' && meta.dateKey !== state.teacherDrag.dateKey) return;
+          const changed =
+            meta.minute !== state.teacherDrag.currentMinute || meta.dateKey !== state.teacherDrag.currentDateKey;
+          state.teacherDrag.currentMinute = meta.minute;
+          state.teacherDrag.currentDateKey = meta.dateKey;
+          state.teacherDrag.pointerX = event.clientX;
+          state.teacherDrag.pointerY = event.clientY;
+          if (changed) {
+            state.teacherDrag.moved = true;
+            renderTeacherCalendar();
+            return;
+          }
+          renderTeacherDragHint(getTeacherDragPreview());
+        };
+
+        teacherCalendarGrid.onmouseup = () => {
+          finalizeTeacherDrag();
+        };
+      }
+
+      function renderMyBookings(items) {
+        myBookingsBody.innerHTML = '';
+        if (!items.length) {
+          myBookingsBody.innerHTML = '<tr><td colspan="6">예약 없음</td></tr>';
+          return;
+        }
+
+        for (const row of items) {
+          const canCancel = ['PENDING', 'BOOKED'].includes(row.status);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.id}</td>
+            <td>${row.teacher_email || row.teacher_name || row.teacher_user_id}</td>
+            <td class="mono">${formatDateTime(row.start_at)}</td>
+            <td class="mono">${formatDateTime(row.end_at)}</td>
+            <td>${statusBadge(row.status)}</td>
+            <td>${canCancel ? `<button type="button" data-cancel-my-booking="${row.id}">취소</button>` : ''}</td>
+          `;
+          myBookingsBody.appendChild(tr);
+        }
+      }
+
+      async function loadMyBookings() {
+        const result = await api('/api/v1/bookings/me', { auth: true });
+        state.studentBookings = result.items || [];
+        renderMyBookings(state.studentBookings);
+        renderStudentStats();
+      }
+
+      async function createBooking(startAtIso) {
+        const teacherId = parseRequiredId(teacherSelect.value, 'teacher_id');
+        await api('/api/v1/bookings', {
+          method: 'POST',
+          auth: true,
+          body: {
+            teacher_user_id: teacherId,
+            start_at: startAtIso,
+          },
+        });
+      }
+
+      async function cancelBooking(bookingId) {
+        await api(`/api/v1/bookings/${bookingId}/cancel`, {
+          method: 'POST',
+          auth: true,
+        });
+      }
+
+      async function approveBooking(bookingId) {
+        await api(`/api/v1/teachers/me/bookings/${bookingId}/approve`, {
+          method: 'POST',
+          auth: true,
+        });
+      }
+
+      function openTeacherCreateModal(preview) {
+        state.teacherCreateDraft = preview;
+        teacherCreateForm.reset();
+        teacherCreateForm.elements.date_local.value = formatDateKeyLabel(preview.dateKey);
+        teacherCreateForm.elements.start_time_local.value = timeLabelFromMinutes(preview.startMinute);
+        teacherCreateForm.elements.end_time_local.value = timeLabelFromMinutes(preview.endMinuteExclusive);
+        teacherCreateForm.elements.repeat_mode.value = 'single';
+        teacherCreateForm.elements.is_active.value = 'true';
+        teacherCreateModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeTeacherCreateModal() {
+        teacherCreateModal.classList.add('hidden');
+        state.teacherCreateDraft = null;
+        document.body.style.overflow = '';
+      }
+
+      async function createTeacherAvailabilityFromDraft() {
+        const preview = state.teacherCreateDraft;
+        if (!preview) {
+          throw new Error('생성할 드래그 범위 정보가 없습니다.');
+        }
+
+        const repeatMode = String(teacherCreateForm.elements.repeat_mode.value || 'single');
+        const startTime = String(teacherCreateForm.elements.start_time_local.value || '').slice(0, 5);
+        const endTime = String(teacherCreateForm.elements.end_time_local.value || '').slice(0, 5);
+        const isActive = String(teacherCreateForm.elements.is_active.value || 'true') === 'true';
+        const classTitle = String(teacherCreateForm.elements.class_title.value || '').trim();
+        const classNote = String(teacherCreateForm.elements.class_note.value || '').trim();
+
+        const startMinute = minutesFromTimeLocal(startTime);
+        const endMinuteExclusive = minutesFromTimeLocal(endTime);
+        if (startMinute === null || endMinuteExclusive === null || startMinute >= endMinuteExclusive) {
+          throw new Error('시작시간은 종료시간보다 빨라야 합니다.');
+        }
+
+        await api('/api/v1/teachers/me/availability', {
+          method: 'POST',
+          auth: true,
+          body: {
+            weekday: preview.weekday,
+            start_time_local: startTime,
+            end_time_local: endTime,
+            is_active: isActive,
+            lesson_title: classTitle,
+            lesson_note: classNote,
+          },
+        });
+
+        if (repeatMode === 'single') {
+          const windowDays = Math.max(1, Number.parseInt(state.teacherProfile?.booking_window_days || '30', 10) || 30);
+          const from = new Date();
+          from.setHours(0, 0, 0, 0);
+          const to = new Date(from);
+          to.setDate(to.getDate() + windowDays);
+
+          const reasonBase = classTitle ? `single_slot_auto_block:${classTitle}` : 'single_slot_auto_block';
+          const reason = classNote ? `${reasonBase} (${classNote})` : reasonBase;
+
+          for (let cursor = new Date(from); cursor <= to; cursor.setDate(cursor.getDate() + 1)) {
+            const dateKey = toDateKeyFromDate(cursor);
+            if (dateKey === preview.dateKey || cursor.getDay() !== preview.weekday) continue;
+            try {
+              await api('/api/v1/teachers/me/exceptions', {
+                method: 'POST',
+                auth: true,
+                body: {
+                  date_local: dateKey,
+                  start_time_local: startTime,
+                  end_time_local: endTime,
+                  reason,
+                },
+              });
+            } catch (err) {
+              if (err?.payload?.error !== 'exception_conflict') {
+                throw err;
+              }
+            }
+          }
+        }
+
+        pushLog('클래스 생성 모드', {
+          date: preview.dateKey,
+          start_time_local: startTime,
+          end_time_local: endTime,
+          repeat_mode: repeatMode,
+          class_title: classTitle || null,
+          class_note: classNote || null,
+          is_active: isActive,
+        });
+
+        await loadTeacherAvailability();
+        await loadTeachers();
+        await loadSlotsForCurrentMonth();
+        closeTeacherCreateModal();
+      }
+
+      async function loadStudentDashboard() {
+        state.monthCursor = new Date();
+        await loadTeachers();
+        await loadSlotsForCurrentMonth();
+        await loadMyBookings();
+      }
+
+      function renderAvailability(items) {
+        availabilityBody.innerHTML = '';
+        if (!items.length) {
+          availabilityBody.innerHTML = '<tr><td colspan="7">데이터 없음</td></tr>';
+          return;
+        }
+
+        for (const row of items) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.id}</td>
+            <td>${row.weekday}</td>
+            <td class="mono">${row.start_time_local}</td>
+            <td class="mono">${row.end_time_local}</td>
+            <td>${row.lesson_title || '-'}</td>
+            <td>${row.is_active ? '<span class="status-badge status-TRUE">활성</span>' : '<span class="status-badge status-FALSE">비활성</span>'}</td>
+            <td><button type="button" data-fill-availability="${row.id}" data-fill-availability-active="${row.is_active ? 'true' : 'false'}" data-fill-availability-title="${row.lesson_title || ''}" data-fill-availability-note="${row.lesson_note || ''}">입력채우기</button></td>
+          `;
+          availabilityBody.appendChild(tr);
+        }
+      }
+
+      function renderExceptions(items) {
+        exceptionBody.innerHTML = '';
+        if (!items.length) {
+          exceptionBody.innerHTML = '<tr><td colspan="6">데이터 없음</td></tr>';
+          return;
+        }
+
+        for (const row of items) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.id}</td>
+            <td class="mono">${row.date_local}</td>
+            <td class="mono">${row.start_time_local || ''}</td>
+            <td class="mono">${row.end_time_local || ''}</td>
+            <td>${row.reason || ''}</td>
+            <td><button type="button" data-fill-exception="${row.id}">입력채우기</button></td>
+          `;
+          exceptionBody.appendChild(tr);
+        }
+      }
+
+      function renderTeacherBookings(items) {
+        teacherBookingsBody.innerHTML = '';
+        if (!items.length) {
+          teacherBookingsBody.innerHTML = '<tr><td colspan="6">데이터 없음</td></tr>';
+          return;
+        }
+
+        for (const row of items) {
+          const canApprove = row.status === 'PENDING';
+          const canCancel = ['PENDING', 'BOOKED'].includes(row.status);
+          const actions = [
+            canApprove ? `<button type="button" data-approve-teacher-booking="${row.id}">승인</button>` : '',
+            canCancel ? `<button type="button" data-cancel-teacher-booking="${row.id}">거절/취소</button>` : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.id}</td>
+            <td>${row.student_email || row.student_name || row.student_user_id}</td>
+            <td class="mono">${formatDateTime(row.start_at)}</td>
+            <td class="mono">${formatDateTime(row.end_at)}</td>
+            <td>${statusBadge(row.status)}</td>
+            <td>${actions}</td>
+          `;
+          teacherBookingsBody.appendChild(tr);
+        }
+      }
+
+      async function loadTeacherAvailability() {
+        const result = await api('/api/v1/teachers/me/availability', { auth: true });
+        state.teacherAvailability = result.items || [];
+        renderAvailability(state.teacherAvailability);
+        renderTeacherStats();
+        renderTeacherCalendar();
+      }
+
+      async function loadTeacherExceptions() {
+        const result = await api('/api/v1/teachers/me/exceptions', { auth: true });
+        state.teacherExceptions = result.items || [];
+        renderExceptions(state.teacherExceptions);
+        renderTeacherStats();
+      }
+
+      async function loadTeacherBookings() {
+        const result = await api('/api/v1/teachers/me/bookings', { auth: true });
+        state.teacherBookings = result.items || [];
+        renderTeacherBookings(state.teacherBookings);
+        renderTeacherStats();
+        renderTeacherCalendar();
+      }
+
+      async function loadTeacherDashboard() {
+        state.teacherWeekCursor = new Date();
+        await loadTeacherProfile();
+        await loadTeacherAvailability();
+        await loadTeacherExceptions();
+        await loadTeacherBookings();
+        renderTeacherCalendar();
+      }
+
+      document.getElementById('teacherPreset').addEventListener('click', () => {
+        loginForm.elements.email.value = 'teacher@example.com';
+        loginForm.elements.password.value = 'password123!';
+      });
+
+      document.getElementById('studentPreset').addEventListener('click', () => {
+        loginForm.elements.email.value = 'student@example.com';
+        loginForm.elements.password.value = 'password123!';
+      });
+
+      document.getElementById('healthBtn').addEventListener('click', () => {
+        runAction('헬스체크', async () => {
+          await api('/api/health');
+        });
+      });
+
+      document.getElementById('meBtn').addEventListener('click', () => {
+        runAction('내 정보', async () => {
+          await syncMe();
+          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
+          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+        });
+      });
+
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        runAction('로그아웃', async () => {
+          if (state.token) {
+            await api('/api/v1/auth/logout', { method: 'POST', auth: true });
+          }
+          setAuth('', null);
+          state.teachers = [];
+          state.selectedTeacherId = '';
+          state.slotsByDate = {};
+          state.studentBookings = [];
+          state.teacherAvailability = [];
+          state.teacherExceptions = [];
+          state.teacherBookings = [];
+          state.teacherProfile = null;
+          myBookingsBody.innerHTML = '';
+          availabilityBody.innerHTML = '';
+          exceptionBody.innerHTML = '';
+          teacherBookingsBody.innerHTML = '';
+          calendarGrid.innerHTML = '';
+          teacherCalendarGrid.innerHTML = '';
+          daySlotsList.innerHTML = '';
+          teacherDragHint.classList.add('hidden');
+          closeTeacherCreateModal();
+          renderStudentMeta();
+          renderStudentStats();
+          renderTeacherStats();
+          window.location.href = '/index.html';
+        });
+      });
+
+      document.getElementById('topLogoutBtn').addEventListener('click', () => {
+        document.getElementById('logoutBtn').click();
+      });
+
+      document.getElementById('teacherCreateCancelBtn').addEventListener('click', () => {
+        closeTeacherCreateModal();
+      });
+
+      teacherCreateModal.addEventListener('click', (event) => {
+        if (event.target === teacherCreateModal) {
+          closeTeacherCreateModal();
+        }
+      });
+
+      teacherCreateForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        runAction('수업 일정 저장', createTeacherAvailabilityFromDraft);
+      });
+
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        runAction('로그인', async () => {
+          const form = formObject(loginForm);
+          const result = await api('/api/v1/auth/login', {
+            method: 'POST',
+            body: { email: form.email, password: form.password },
+          });
+          setAuth(result.token, result.user);
+          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
+          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+        });
+      });
+
+      registerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        runAction('회원가입', async () => {
+          const form = formObject(registerForm);
+          const result = await api('/api/v1/auth/register', {
+            method: 'POST',
+            body: {
+              email: form.email,
+              password: form.password,
+              name: form.name,
+              role: form.role,
+            },
+          });
+          setAuth(result.token, result.user);
+          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
+          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+        });
+      });
+
+      teacherSelect.addEventListener('change', () => {
+        state.selectedTeacherId = teacherSelect.value;
+        renderStudentMeta();
+        runAction('선생님 전환', loadSlotsForCurrentMonth);
+      });
+
+      document.getElementById('teachersRefreshBtn').addEventListener('click', () => {
+        runAction('선생님 조회', async () => {
+          await loadTeachers();
+          await loadSlotsForCurrentMonth();
+        });
+      });
+
+      document.getElementById('prevMonthBtn').addEventListener('click', () => {
+        const next = new Date(state.monthCursor);
+        next.setDate(next.getDate() - 7);
+        state.monthCursor = next;
+        runAction('이전 주 슬롯 조회', loadSlotsForCurrentMonth);
+      });
+
+      document.getElementById('nextMonthBtn').addEventListener('click', () => {
+        const next = new Date(state.monthCursor);
+        next.setDate(next.getDate() + 7);
+        state.monthCursor = next;
+        runAction('다음 주 슬롯 조회', loadSlotsForCurrentMonth);
+      });
+
+      document.getElementById('todayBtn').addEventListener('click', () => {
+        const today = new Date();
+        state.monthCursor = new Date(today);
+        state.selectedDateKey = toDateKeyFromDate(today);
+        runAction('오늘 기준 캘린더 조회', loadSlotsForCurrentMonth);
+      });
+
+      document.getElementById('monthRefreshBtn').addEventListener('click', () => {
+        runAction('캘린더 새로고침', loadSlotsForCurrentMonth);
+      });
+
+      studentGridStep.addEventListener('change', () => {
+        state.studentGridStepMin = Number.parseInt(studentGridStep.value, 10) || 15;
+        renderCalendar();
+      });
+
+      availableOnlyToggle.addEventListener('change', () => {
+        state.availableOnly = availableOnlyToggle.checked;
+        renderCalendar();
+        renderDaySlots();
+      });
+
+      document.getElementById('teacherPrevWeekBtn').addEventListener('click', () => {
+        const next = new Date(state.teacherWeekCursor);
+        next.setDate(next.getDate() - 7);
+        state.teacherWeekCursor = next;
+        renderTeacherCalendar();
+      });
+
+      document.getElementById('teacherNextWeekBtn').addEventListener('click', () => {
+        const next = new Date(state.teacherWeekCursor);
+        next.setDate(next.getDate() + 7);
+        state.teacherWeekCursor = next;
+        renderTeacherCalendar();
+      });
+
+      document.getElementById('teacherTodayBtn').addEventListener('click', () => {
+        state.teacherWeekCursor = new Date();
+        renderTeacherCalendar();
+      });
+
+      teacherGridStep.addEventListener('change', () => {
+        state.teacherGridStepMin = Number.parseInt(teacherGridStep.value, 10) || 15;
+        renderTeacherCalendar();
+      });
+
+      document.getElementById('teacherWeekRefreshBtn').addEventListener('click', () => {
+        runAction('선생님 캘린더 새로고침', async () => {
+          await loadTeacherProfile();
+          await loadTeacherAvailability();
+          await loadTeacherBookings();
+        });
+      });
+
+      document.getElementById('teacherDurationSaveBtn').addEventListener('click', () => {
+        runAction('수업 길이 저장', async () => {
+          const lessonDuration = Number.parseInt(teacherDurationSelect.value, 10);
+          await api('/api/v1/teachers/me/profile', {
+            method: 'PATCH',
+            auth: true,
+            body: { lesson_duration_min: lessonDuration },
+          });
+          await loadTeacherProfile();
+          await loadTeacherAvailability();
+          await loadTeachers();
+          await loadSlotsForCurrentMonth();
+        });
+      });
+
+      document.getElementById('myBookingsRefreshBtn').addEventListener('click', () => {
+        runAction('내 예약 조회', loadMyBookings);
+      });
+
+      myBookingsBody.addEventListener('click', (e) => {
+        const bookingId = e.target?.dataset?.cancelMyBooking;
+        if (!bookingId) return;
+        runAction('내 예약 취소', async () => {
+          await cancelBooking(bookingId);
+          await loadMyBookings();
+          await loadSlotsForCurrentMonth();
+        });
+      });
+
+      document.getElementById('availabilityCreateBtn').addEventListener('click', () => {
+        runAction('시간표 등록', async () => {
+          const form = formObject(availabilityForm);
+          await api('/api/v1/teachers/me/availability', {
+            method: 'POST',
+            auth: true,
+            body: {
+              weekday: Number(form.weekday),
+              start_time_local: form.start_time_local,
+              end_time_local: form.end_time_local,
+              is_active: form.is_active === 'true',
+              lesson_title: form.lesson_title,
+              lesson_note: form.lesson_note,
+            },
+          });
+          await loadTeacherAvailability();
+        });
+      });
+
+      document.getElementById('availabilityUpdateBtn').addEventListener('click', () => {
+        runAction('시간표 수정', async () => {
+          const id = parseRequiredId(availabilityForm.elements.id.value, 'availability id');
+          const form = formObject(availabilityForm);
+          await api(`/api/v1/teachers/me/availability/${id}`, {
+            method: 'PATCH',
+            auth: true,
+            body: {
+              weekday: Number(form.weekday),
+              start_time_local: form.start_time_local,
+              end_time_local: form.end_time_local,
+              is_active: form.is_active === 'true',
+              lesson_title: form.lesson_title,
+              lesson_note: form.lesson_note,
+            },
+          });
+          await loadTeacherAvailability();
+        });
+      });
+
+      document.getElementById('availabilityDeleteBtn').addEventListener('click', () => {
+        runAction('시간표 삭제', async () => {
+          const id = parseRequiredId(availabilityForm.elements.id.value, 'availability id');
+          await api(`/api/v1/teachers/me/availability/${id}`, {
+            method: 'DELETE',
+            auth: true,
+          });
+          await loadTeacherAvailability();
+        });
+      });
+
+      document.getElementById('availabilityRefreshBtn').addEventListener('click', () => {
+        runAction('시간표 조회', loadTeacherAvailability);
+      });
+
+      availabilityBody.addEventListener('click', (e) => {
+        const id = e.target?.dataset?.fillAvailability;
+        if (!id) return;
+        const tr = e.target.closest('tr');
+        availabilityForm.elements.id.value = id;
+        availabilityForm.elements.weekday.value = tr.children[1].textContent.trim();
+        availabilityForm.elements.start_time_local.value = tr.children[2].textContent.trim().slice(0, 5);
+        availabilityForm.elements.end_time_local.value = tr.children[3].textContent.trim().slice(0, 5);
+        availabilityForm.elements.is_active.value = e.target.dataset.fillAvailabilityActive === 'false' ? 'false' : 'true';
+        availabilityForm.elements.lesson_title.value = e.target.dataset.fillAvailabilityTitle || '';
+        availabilityForm.elements.lesson_note.value = e.target.dataset.fillAvailabilityNote || '';
+      });
+
+      document.getElementById('exceptionCreateBtn').addEventListener('click', () => {
+        runAction('예외 등록', async () => {
+          const form = formObject(exceptionForm);
+          const hasStart = Boolean(form.start_time_local.trim());
+          const hasEnd = Boolean(form.end_time_local.trim());
+          if (hasStart !== hasEnd) {
+            throw new Error('예외 시작/종료는 함께 입력하거나 둘 다 비워야 합니다.');
+          }
+
+          const body = {
+            date_local: form.date_local,
+            reason: form.reason,
+          };
+
+          if (hasStart) {
+            body.start_time_local = form.start_time_local;
+            body.end_time_local = form.end_time_local;
+          }
+
+          await api('/api/v1/teachers/me/exceptions', {
+            method: 'POST',
+            auth: true,
+            body,
+          });
+          await loadTeacherExceptions();
+        });
+      });
+
+      document.getElementById('exceptionDeleteBtn').addEventListener('click', () => {
+        runAction('예외 삭제', async () => {
+          const id = parseRequiredId(exceptionForm.elements.id.value, 'exception id');
+          await api(`/api/v1/teachers/me/exceptions/${id}`, {
+            method: 'DELETE',
+            auth: true,
+          });
+          await loadTeacherExceptions();
+        });
+      });
+
+      document.getElementById('exceptionRefreshBtn').addEventListener('click', () => {
+        runAction('예외 조회', loadTeacherExceptions);
+      });
+
+      exceptionBody.addEventListener('click', (e) => {
+        const id = e.target?.dataset?.fillException;
+        if (!id) return;
+        const tr = e.target.closest('tr');
+        exceptionForm.elements.id.value = id;
+        exceptionForm.elements.date_local.value = tr.children[1].textContent.trim();
+        exceptionForm.elements.start_time_local.value = tr.children[2].textContent.trim().slice(0, 5);
+        exceptionForm.elements.end_time_local.value = tr.children[3].textContent.trim().slice(0, 5);
+        exceptionForm.elements.reason.value = tr.children[4].textContent.trim();
+      });
+
+      document.getElementById('teacherBookingsRefreshBtn').addEventListener('click', () => {
+        runAction('선생님 예약 조회', loadTeacherBookings);
+      });
+
+      teacherBookingsBody.addEventListener('click', (e) => {
+        const approveId = e.target?.dataset?.approveTeacherBooking;
+        if (approveId) {
+          runAction('예약 승인', async () => {
+            await approveBooking(approveId);
+            await loadTeacherBookings();
+            await loadSlotsForCurrentMonth();
+          });
+          return;
+        }
+
+        const bookingId = e.target?.dataset?.cancelTeacherBooking;
+        if (!bookingId) return;
+        runAction('선생님 예약 취소', async () => {
+          await cancelBooking(bookingId);
+          await loadTeacherBookings();
+          await loadSlotsForCurrentMonth();
+        });
+      });
+
+      window.addEventListener('unhandledrejection', (e) => {
+        pushLog('UI_REJECTION', {
+          message: e.reason?.message || String(e.reason),
+          payload: e.reason?.payload,
+        });
+      });
+
+      window.addEventListener('error', (e) => {
+        pushLog('UI_ERROR', { message: e.message });
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !teacherCreateModal.classList.contains('hidden')) {
+          closeTeacherCreateModal();
+        }
+      });
+
+      async function bootstrap() {
+        studentGridStep.value = '15';
+        teacherGridStep.value = '15';
+        state.studentGridStepMin = 15;
+        state.teacherGridStepMin = 15;
+        renderAuth();
+        renderStudentMeta();
+        renderStudentStats();
+        renderTeacherStats();
+        if (!state.token) {
+          window.location.href = '/index.html';
+          return;
+        }
+
+        try {
+          await syncMe();
+          if (!state.user) {
+            window.location.href = '/index.html';
+            return;
+          }
+          if (PAGE_MODE === 'TEACHER' && state.user.role !== 'TEACHER') {
+            window.location.href = state.user.role === 'STUDENT' ? '/student.html' : '/index.html';
+            return;
+          }
+          if (PAGE_MODE === 'STUDENT' && state.user.role !== 'STUDENT') {
+            window.location.href = state.user.role === 'TEACHER' ? '/teacher.html' : '/index.html';
+            return;
+          }
+          if (PAGE_MODE === 'TEACHER') {
+            await loadTeacherDashboard();
+          } else {
+            await loadStudentDashboard();
+          }
+        } catch (err) {
+          pushLog('세션 복원 FAILED', { message: getErrorMessage(err), payload: err?.payload });
+          setAuth('', null);
+          window.location.href = '/index.html';
+        }
+      }
+
+      bootstrap();
+    </script>
+  </body>
+</html>

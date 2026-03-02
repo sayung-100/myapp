@@ -12,4 +12,9 @@ INSERT INTO teacher_profiles (teacher_user_id, lesson_duration_min, timezone, ca
 SELECT id, 60, 'Asia/Seoul', 6, 30
 FROM users
 WHERE email = 'teacher@example.com'
-ON CONFLICT (teacher_user_id) DO NOTHING;
+ON CONFLICT (teacher_user_id) DO UPDATE SET
+  lesson_duration_min = EXCLUDED.lesson_duration_min,
+  timezone = EXCLUDED.timezone,
+  cancel_cutoff_hours = EXCLUDED.cancel_cutoff_hours,
+  booking_window_days = EXCLUDED.booking_window_days,
+  updated_at = NOW();

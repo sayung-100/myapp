@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
 const { query } = require('./db');
-const { signAccessToken, requireAuth } = require('./auth');
+const { signAccessToken, requireAuth, revokeAccessToken } = require('./auth');
 
 dotenv.config({ path: '../.env' });
 
@@ -57,6 +57,14 @@ function parseAvailabilityId(value) {
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(String(value || ''), 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+}
+
+function parseNonNegativeInt(value) {
+  const parsed = Number.parseInt(String(value || ''), 10);
+  if (!Number.isInteger(parsed) || parsed < 0) {
     return null;
   }
   return parsed;
@@ -334,7 +342,13 @@ app.post('/api/v1/auth/login', async (req, res) => {
 });
 
 app.post('/api/v1/auth/logout', requireAuth, async (req, res) => {
-  return res.json({ ok: true });
+  try {
+    await revokeAccessToken(req.auth);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'internal_server_error' });
+  }
 });
 
 app.get('/api/v1/auth/me', requireAuth, async (req, res) => {
@@ -363,7 +377,16 @@ app.get('/api/v1/teachers/me/availability', requireAuth, requireTeacher, async (
   try {
     const result = await query(
       `
-        SELECT id, weekday, start_time_local, end_time_local, is_active, created_at, updated_at
+        SELECT
+          id,
+          weekday,
+          start_time_local,
+          end_time_local,
+          is_active,
+          lesson_title,
+          lesson_note,
+          created_at,
+          updated_at
         FROM weekly_availabilities
         WHERE teacher_user_id = $1
         ORDER BY weekday ASC, start_time_local ASC, id ASC
@@ -377,11 +400,99 @@ app.get('/api/v1/teachers/me/availability', requireAuth, requireTeacher, async (
   }
 });
 
+app.get('/api/v1/teachers/me/profile', requireAuth, requireTeacher, async (req, res) => {
+  try {
+    const result = await query(
+      `
+        SELECT teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days, updated_at
+        FROM teacher_profiles
+        WHERE teacher_user_id = $1
+        LIMIT 1
+      `,
+      [req.auth.userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'profile_not_found' });
+    }
+
+    return res.json({ item: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'internal_server_error' });
+  }
+});
+
+app.patch('/api/v1/teachers/me/profile', requireAuth, requireTeacher, async (req, res) => {
+  try {
+    const hasLessonDuration = req.body?.lesson_duration_min !== undefined;
+    const hasCancelCutoff = req.body?.cancel_cutoff_hours !== undefined;
+    const hasBookingWindow = req.body?.booking_window_days !== undefined;
+
+    if (!hasLessonDuration && !hasCancelCutoff && !hasBookingWindow) {
+      return res.status(400).json({
+        error: 'at least one of lesson_duration_min, cancel_cutoff_hours, booking_window_days is required',
+      });
+    }
+
+    let lessonDurationMin = null;
+    if (hasLessonDuration) {
+      lessonDurationMin = parsePositiveInt(req.body.lesson_duration_min);
+      if (!lessonDurationMin || lessonDurationMin < 10 || lessonDurationMin > 180 || lessonDurationMin % 5 !== 0) {
+        return res.status(400).json({ error: 'lesson_duration_min must be 10~180 and divisible by 5' });
+      }
+    }
+
+    let cancelCutoffHours = null;
+    if (hasCancelCutoff) {
+      cancelCutoffHours = parseNonNegativeInt(req.body.cancel_cutoff_hours);
+      if (cancelCutoffHours === null || cancelCutoffHours > 336) {
+        return res.status(400).json({ error: 'cancel_cutoff_hours must be 0~336' });
+      }
+    }
+
+    let bookingWindowDays = null;
+    if (hasBookingWindow) {
+      bookingWindowDays = parsePositiveInt(req.body.booking_window_days);
+      if (!bookingWindowDays || bookingWindowDays > 365) {
+        return res.status(400).json({ error: 'booking_window_days must be 1~365' });
+      }
+    }
+
+    const updated = await query(
+      `
+        UPDATE teacher_profiles
+        SET lesson_duration_min = COALESCE($2::int, lesson_duration_min),
+            cancel_cutoff_hours = COALESCE($3::int, cancel_cutoff_hours),
+            booking_window_days = COALESCE($4::int, booking_window_days),
+            updated_at = NOW()
+        WHERE teacher_user_id = $1
+        RETURNING teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days, updated_at
+      `,
+      [req.auth.userId, lessonDurationMin, cancelCutoffHours, bookingWindowDays]
+    );
+
+    if (updated.rowCount === 0) {
+      return res.status(404).json({ error: 'profile_not_found' });
+    }
+
+    return res.json({ item: updated.rows[0] });
+  } catch (err) {
+    if (err?.code === '23514' || err?.code === '22007' || err?.code === '22P02') {
+      return res.status(400).json({ error: 'invalid_request' });
+    }
+    console.error(err);
+    return res.status(500).json({ error: 'internal_server_error' });
+  }
+});
+
 app.post('/api/v1/teachers/me/availability', requireAuth, requireTeacher, async (req, res) => {
   try {
     const weekday = Number(req.body?.weekday);
     const startTimeLocal = parseLocalTime(req.body?.start_time_local);
     const endTimeLocal = parseLocalTime(req.body?.end_time_local);
+    const lessonTitle = String(req.body?.lesson_title || '').trim() || null;
+    const lessonNote = String(req.body?.lesson_note || '').trim() || null;
     const isActiveInput = req.body?.is_active;
     const isActive = isActiveInput === undefined ? true : isActiveInput;
 
@@ -405,12 +516,21 @@ app.post('/api/v1/teachers/me/availability', requireAuth, requireTeacher, async 
     const created = await query(
       `
         INSERT INTO weekly_availabilities (
-          teacher_user_id, weekday, start_time_local, end_time_local, is_active
+          teacher_user_id, weekday, start_time_local, end_time_local, is_active, lesson_title, lesson_note
         )
-        VALUES ($1, $2, $3::time, $4::time, $5)
-        RETURNING id, weekday, start_time_local, end_time_local, is_active, created_at, updated_at
+        VALUES ($1, $2, $3::time, $4::time, $5, $6, $7)
+        RETURNING
+          id,
+          weekday,
+          start_time_local,
+          end_time_local,
+          is_active,
+          lesson_title,
+          lesson_note,
+          created_at,
+          updated_at
       `,
-      [req.auth.userId, weekday, startTimeLocal, endTimeLocal, isActive]
+      [req.auth.userId, weekday, startTimeLocal, endTimeLocal, isActive, lessonTitle, lessonNote]
     );
     return res.status(201).json({ item: created.rows[0] });
   } catch (err) {
@@ -431,7 +551,7 @@ app.patch('/api/v1/teachers/me/availability/:id', requireAuth, requireTeacher, a
 
     const found = await query(
       `
-        SELECT id, weekday, start_time_local, end_time_local, is_active
+        SELECT id, weekday, start_time_local, end_time_local, is_active, lesson_title, lesson_note
         FROM weekly_availabilities
         WHERE id = $1 AND teacher_user_id = $2
         LIMIT 1
@@ -456,6 +576,10 @@ app.patch('/api/v1/teachers/me/availability/:id', requireAuth, requireTeacher, a
         : parseLocalTime(req.body.end_time_local);
     const nextIsActive =
       req.body?.is_active === undefined ? current.is_active : req.body.is_active;
+    const nextLessonTitle =
+      req.body?.lesson_title === undefined ? current.lesson_title : String(req.body.lesson_title || '').trim() || null;
+    const nextLessonNote =
+      req.body?.lesson_note === undefined ? current.lesson_note : String(req.body.lesson_note || '').trim() || null;
 
     if (!Number.isInteger(nextWeekday) || nextWeekday < 0 || nextWeekday > 6) {
       return res.status(400).json({ error: 'weekday must be an integer between 0 and 6' });
@@ -484,11 +608,22 @@ app.patch('/api/v1/teachers/me/availability/:id', requireAuth, requireTeacher, a
             start_time_local = $4::time,
             end_time_local = $5::time,
             is_active = $6,
+            lesson_title = $7,
+            lesson_note = $8,
             updated_at = NOW()
         WHERE id = $1 AND teacher_user_id = $2
-        RETURNING id, weekday, start_time_local, end_time_local, is_active, created_at, updated_at
+        RETURNING
+          id,
+          weekday,
+          start_time_local,
+          end_time_local,
+          is_active,
+          lesson_title,
+          lesson_note,
+          created_at,
+          updated_at
       `,
-      [id, req.auth.userId, nextWeekday, nextStartTimeLocal, nextEndTimeLocal, nextIsActive]
+      [id, req.auth.userId, nextWeekday, nextStartTimeLocal, nextEndTimeLocal, nextIsActive, nextLessonTitle, nextLessonNote]
     );
     return res.json({ item: updated.rows[0] });
   } catch (err) {
@@ -684,7 +819,9 @@ app.get('/api/v1/teachers/:teacherId/slots', requireAuth, async (req, res) => {
         candidate_slots AS (
           SELECT
             gs AS start_at,
-            gs + make_interval(mins => $5::int) AS end_at
+            gs + make_interval(mins => $5::int) AS end_at,
+            wa.lesson_title,
+            wa.lesson_note
           FROM day_series d
           JOIN weekly_availabilities wa
             ON wa.teacher_user_id = $1
@@ -756,12 +893,14 @@ app.get('/api/v1/teachers/:teacherId/slots', requireAuth, async (req, res) => {
         SELECT
           c.start_at,
           c.end_at,
+          c.lesson_title,
+          c.lesson_note,
           (b.id IS NULL) AS is_available
         FROM candidate_slots c
         LEFT JOIN bookings b
           ON b.teacher_user_id = $1
          AND b.start_at = c.start_at
-         AND b.status = 'BOOKED'
+         AND b.status IN ('PENDING', 'BOOKED')
         ORDER BY c.start_at ASC
       `,
       [
@@ -827,7 +966,7 @@ app.post('/api/v1/bookings', requireAuth, requireStudent, async (req, res) => {
         INSERT INTO bookings (
           teacher_user_id, student_user_id, start_at, duration_min, status
         )
-        VALUES ($1, $2, $3::timestamptz, $4, 'BOOKED')
+        VALUES ($1, $2, $3::timestamptz, $4, 'PENDING')
         RETURNING
           id,
           teacher_user_id,
@@ -921,6 +1060,64 @@ app.get('/api/v1/teachers/me/bookings', requireAuth, requireTeacher, async (req,
   }
 });
 
+app.post('/api/v1/teachers/me/bookings/:id/approve', requireAuth, requireTeacher, async (req, res) => {
+  try {
+    const bookingId = parsePositiveInt(req.params.id);
+    if (!bookingId) {
+      return res.status(400).json({ error: 'invalid_booking_id' });
+    }
+
+    const updated = await query(
+      `
+        UPDATE bookings
+        SET status = 'BOOKED',
+            updated_at = NOW()
+        WHERE id = $1
+          AND teacher_user_id = $2
+          AND status = 'PENDING'
+        RETURNING
+          id,
+          teacher_user_id,
+          student_user_id,
+          start_at,
+          (start_at + make_interval(mins => duration_min)) AS end_at,
+          duration_min,
+          status,
+          canceled_at,
+          cancel_reason,
+          created_at,
+          updated_at
+      `,
+      [bookingId, req.auth.userId]
+    );
+
+    if (updated.rowCount === 0) {
+      const found = await query(
+        `
+          SELECT id, teacher_user_id, status
+          FROM bookings
+          WHERE id = $1
+          LIMIT 1
+        `,
+        [bookingId]
+      );
+      if (found.rowCount === 0) {
+        return res.status(404).json({ error: 'booking_not_found' });
+      }
+      const row = found.rows[0];
+      if (Number(row.teacher_user_id) !== Number(req.auth.userId)) {
+        return res.status(403).json({ error: 'forbidden' });
+      }
+      return res.status(409).json({ error: 'booking_not_pending' });
+    }
+
+    return res.json({ item: updated.rows[0] });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'internal_server_error' });
+  }
+});
+
 app.post('/api/v1/bookings/:id/cancel', requireAuth, async (req, res) => {
   try {
     const bookingId = parsePositiveInt(req.params.id);
@@ -959,11 +1156,11 @@ app.post('/api/v1/bookings/:id/cancel', requireAuth, async (req, res) => {
     if (!isStudentOwner && !isTeacherOwner) {
       return res.status(403).json({ error: 'forbidden' });
     }
-    if (booking.status !== 'BOOKED') {
+    if (!['PENDING', 'BOOKED'].includes(String(booking.status || ''))) {
       return res.status(409).json({ error: 'booking_not_active' });
     }
 
-    if (isStudentOwner) {
+    if (isStudentOwner && booking.status === 'BOOKED') {
       const cutoffAt = new Date(
         new Date(booking.start_at).getTime() - Number(booking.cancel_cutoff_hours) * 60 * 60 * 1000
       );
@@ -1005,6 +1202,17 @@ app.post('/api/v1/bookings/:id/cancel', requireAuth, async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`backend listening on port ${port}`);
-});
+function startServer(listenPort = port) {
+  return app.listen(listenPort, () => {
+    console.log(`backend listening on port ${listenPort}`);
+  });
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = {
+  app,
+  startServer,
+};

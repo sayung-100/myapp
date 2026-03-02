@@ -3,346 +3,153 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lesson Booking Calendar</title>
+    <title>Lesson Booking Login</title>
     <style>
       :root {
-        --bg: #ecf3f9;
-        --panel: #ffffff;
-        --line: #d5e0ea;
-        --text: #10233a;
-        --muted: #5b7390;
-        --brand: #0a63ff;
-        --brand-soft: #e5efff;
-        --danger: #c93939;
-        --ok: #0f9d63;
+        --bg: #f8f4ea;
+        --bg-soft: #eef5ff;
+        --line: #d4deea;
+        --text: #10243a;
+        --muted: #5d7086;
+        --brand: #1363df;
+        --danger: #c93f3f;
+        --panel: #fff;
+        --shadow: 0 18px 44px rgba(16, 36, 58, 0.11);
       }
-
-      * {
-        box-sizing: border-box;
-      }
-
+      * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: "IBM Plex Sans KR", "Pretendard", "Noto Sans KR", sans-serif;
+        min-height: 100vh;
         color: var(--text);
-        background: radial-gradient(circle at 0 0, #d9ecff 0%, var(--bg) 56%);
+        font-family: "IBM Plex Sans KR", "Pretendard", "Apple SD Gothic Neo", sans-serif;
+        background:
+          radial-gradient(circle at 10% -10%, #d6e8ff 0%, rgba(214, 232, 255, 0) 35%),
+          radial-gradient(circle at 100% 0, #ffe2be 0%, rgba(255, 226, 190, 0) 30%),
+          linear-gradient(165deg, var(--bg) 0%, var(--bg-soft) 56%, #f5f9ff 100%);
       }
-
-      main {
-        width: min(1220px, 94vw);
+      .wrap {
+        width: min(980px, 94vw);
         margin: 24px auto 40px;
         display: grid;
         gap: 14px;
       }
-
-      h1,
-      h2,
-      h3,
-      h4,
-      p {
-        margin: 0;
-      }
-
-      .hero {
-        display: grid;
-        gap: 8px;
-      }
-
-      .hero h1 {
-        font-size: 31px;
-        letter-spacing: -0.02em;
-      }
-
-      .hero p {
-        color: var(--muted);
-      }
-
-      .panel {
+      .topbar {
         border: 1px solid var(--line);
-        border-radius: 14px;
-        background: var(--panel);
-        padding: 16px;
-        box-shadow: 0 10px 24px rgba(10, 37, 70, 0.06);
-      }
-
-      .panel h2 {
-        font-size: 21px;
-        margin-bottom: 10px;
-      }
-
-      .panel h3 {
-        font-size: 15px;
-      }
-
-      .grid {
-        display: grid;
-        gap: 12px;
-      }
-
-      .grid.two {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .grid.three {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .stack {
-        display: grid;
-        gap: 8px;
-      }
-
-      .actions {
+        border-radius: 16px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(6px);
+        box-shadow: var(--shadow);
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
       }
-
-      label {
-        display: grid;
-        gap: 6px;
+      .brand { display: grid; gap: 4px; }
+      .brand strong { font-size: 18px; letter-spacing: -0.02em; }
+      .brand small { color: var(--muted); }
+      .top-links { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+      .top-links a {
+        text-decoration: none;
+        color: #173a64;
+        background: #edf3ff;
+        border: 1px solid #cfddf4;
+        border-radius: 999px;
+        padding: 7px 12px;
         font-size: 13px;
-        color: var(--muted);
+        font-weight: 600;
       }
-
-      input,
-      select,
-      button,
-      textarea {
-        font: inherit;
-      }
-
-      input,
-      select,
-      textarea {
-        width: 100%;
-        padding: 8px 10px;
+      .panel {
         border: 1px solid var(--line);
-        border-radius: 9px;
+        border-radius: 16px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        padding: 16px;
+      }
+      .panel h1 { margin: 0 0 8px; font-size: 28px; }
+      .panel p { margin: 0; color: var(--muted); }
+      .grid { display: grid; gap: 12px; }
+      .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .subpanel {
+        border: 1px solid #dbe5f2;
+        border-radius: 14px;
+        background: #fdfefe;
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+      h2, h3 { margin: 0; }
+      label { display: grid; gap: 5px; color: var(--muted); font-size: 13px; }
+      input, select, textarea, button { font: inherit; }
+      input, select {
+        width: 100%;
+        border: 1px solid #cfdceb;
+        border-radius: 10px;
+        padding: 9px 10px;
         background: #fff;
         color: var(--text);
       }
-
+      .actions { display: flex; gap: 8px; flex-wrap: wrap; }
       button {
-        border: 0;
-        border-radius: 9px;
-        padding: 9px 12px;
+        border: 1px solid #cdd8e6;
+        border-radius: 10px;
+        background: #eff4fb;
+        color: #21405f;
+        padding: 8px 12px;
+        min-height: 38px;
         cursor: pointer;
-        background: #dde7f7;
-        color: #163760;
+        font-weight: 600;
       }
-
-      button.primary {
-        background: var(--brand);
-        color: #fff;
-      }
-
-      button.danger {
-        background: #fdeaea;
-        color: var(--danger);
-      }
-
-      button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
+      button.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      button.danger { background: #fdeaea; border-color: #f3c7c7; color: var(--danger); }
       .status {
+        border: 1px solid #cad9ec;
+        border-radius: 10px;
+        background: #f5f9ff;
         padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #cae0ff;
-        background: #f4f9ff;
         font-size: 13px;
       }
-
-      .hint {
-        font-size: 12px;
-        color: var(--muted);
-      }
-
-      .mono {
-        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      .role-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        width: fit-content;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: var(--brand-soft);
-        color: #1a4e9a;
-        font-size: 12px;
-        font-weight: 600;
-      }
-
-      .calendar-shell {
-        display: grid;
-        gap: 14px;
-        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-        align-items: start;
-      }
-
-      .calendar-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 10px;
-        align-items: center;
-        margin-bottom: 10px;
-      }
-
-      .calendar-head {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 8px;
-        margin-bottom: 8px;
-      }
-
-      .calendar-head div {
-        text-align: center;
-        font-size: 12px;
-        color: var(--muted);
-        font-weight: 600;
-      }
-
-      .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 8px;
-      }
-
-      .day-cell {
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: #fff;
-        min-height: 84px;
-        padding: 8px;
-        display: grid;
-        align-content: space-between;
-        gap: 6px;
-        text-align: left;
-      }
-
-      .day-cell .date {
-        font-size: 13px;
-        font-weight: 600;
-      }
-
-      .day-cell .count {
-        font-size: 11px;
-        color: var(--muted);
-      }
-
-      .day-cell.selected {
-        border-color: var(--brand);
-        background: #eff5ff;
-        box-shadow: inset 0 0 0 1px #b6ceff;
-      }
-
-      .day-cell.has-open .count {
-        color: var(--ok);
-        font-weight: 700;
-      }
-
-      .day-cell.dimmed {
-        opacity: 0.36;
-      }
-
-      .day-cell:disabled {
-        cursor: default;
-      }
-
-      .slot-list {
-        display: grid;
-        gap: 8px;
-      }
-
-      .slot-item {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: #fff;
-      }
-
-      .slot-item strong {
-        font-size: 13px;
-      }
-
-      .slot-item small {
-        color: var(--muted);
-        font-size: 11px;
-      }
-
-      .slot-item.booked {
-        background: #f5f7fa;
-        color: #7a8698;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-
-      th,
-      td {
-        border-top: 1px solid #edf2f8;
-        text-align: left;
-        padding: 8px 4px;
-        font-size: 13px;
-        vertical-align: top;
-      }
-
-      th {
-        color: var(--muted);
-      }
-
+      .hint { color: var(--muted); font-size: 12px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
       #log {
         margin: 0;
-        min-height: 150px;
-        max-height: 360px;
+        min-height: 140px;
+        max-height: 320px;
         overflow: auto;
         border-radius: 10px;
-        padding: 12px;
-        background: #0f1929;
-        color: #d8e5fb;
+        padding: 10px;
+        background: #0f1a2a;
+        color: #d6e4f8;
         font-size: 12px;
       }
-
-      @media (max-width: 980px) {
-        .grid.two,
-        .grid.three,
-        .calendar-shell {
-          grid-template-columns: 1fr;
-        }
-
-        .day-cell {
-          min-height: 72px;
-        }
-      }
+      @media (max-width: 760px) { .grid.two { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
-    <main>
-      <header class="hero">
-        <h1>레슨 예약 캘린더</h1>
-        <p>캘린더 기반으로 날짜를 고르고, 시간 슬롯을 바로 예약/취소할 수 있습니다.</p>
-      </header>
+    <main class="wrap">
+      <nav class="topbar">
+        <div class="brand">
+          <strong>Lesson Booking Workspace</strong>
+          <small>역할별 페이지 분리: 로그인 / 학생 / 선생님</small>
+        </div>
+        <div class="top-links">
+          <a href="/index.html">로그인</a>
+          <a href="/student.html">학생</a>
+          <a href="/teacher.html">선생님</a>
+          <a href="/guide.html">사용자 설명서</a>
+        </div>
+      </nav>
 
       <section class="panel">
-        <h2>인증</h2>
-        <div class="grid two">
-          <form id="loginForm" class="stack">
-            <h3>로그인</h3>
+        <h1>로그인</h1>
+        <p>로그인 후 역할에 맞는 페이지로 자동 이동합니다.</p>
+      </section>
+
+      <section class="panel grid two">
+        <article class="subpanel">
+          <h3>로그인</h3>
+          <form id="loginForm" class="grid">
             <div class="grid two">
               <label>이메일 <input name="email" value="teacher@example.com" required /></label>
               <label>비밀번호 <input name="password" type="password" value="password123!" required /></label>
@@ -354,9 +161,11 @@
               <button id="healthBtn" type="button">헬스체크</button>
             </div>
           </form>
+        </article>
 
-          <form id="registerForm" class="stack">
-            <h3>회원가입</h3>
+        <article class="subpanel">
+          <h3>회원가입</h3>
+          <form id="registerForm" class="grid">
             <div class="grid two">
               <label>이름 <input name="name" placeholder="테스터" required /></label>
               <label>역할
@@ -372,179 +181,16 @@
             </div>
             <div class="actions">
               <button type="submit">회원가입</button>
-              <button id="meBtn" type="button">내 정보</button>
               <button id="logoutBtn" class="danger" type="button">로그아웃</button>
             </div>
           </form>
-        </div>
-
-        <div class="stack" style="margin-top: 10px">
-          <label>토큰 <textarea id="tokenBox" rows="3" class="mono" readonly></textarea></label>
-          <div id="authStatus" class="status">로그인되지 않았습니다.</div>
-          <div id="rolePill" class="role-pill hidden"></div>
-        </div>
-      </section>
-
-      <section id="studentView" class="panel hidden">
-        <h2>학생 예약 캘린더</h2>
-        <div class="calendar-toolbar">
-          <div class="actions">
-            <label style="min-width: 260px">
-              선생님 선택
-              <select id="teacherSelect"></select>
-            </label>
-            <button id="teachersRefreshBtn" type="button">선생님 새로고침</button>
-          </div>
-
-          <div class="actions">
-            <button id="prevMonthBtn" type="button">이전 달</button>
-            <strong id="monthLabel" class="mono"></strong>
-            <button id="nextMonthBtn" type="button">다음 달</button>
-            <button id="monthRefreshBtn" type="button" class="primary">캘린더 새로고침</button>
-          </div>
-        </div>
-
-        <div class="calendar-shell">
-          <article class="stack">
-            <div class="calendar-head">
-              <div>일</div>
-              <div>월</div>
-              <div>화</div>
-              <div>수</div>
-              <div>목</div>
-              <div>금</div>
-              <div>토</div>
-            </div>
-            <div id="calendarGrid" class="calendar-grid"></div>
-            <p class="hint">참고: 점선 숫자는 해당 날짜의 예약 가능한 슬롯 개수입니다.</p>
-          </article>
-
-          <article class="stack">
-            <h3 id="selectedDateLabel">선택한 날짜</h3>
-            <div id="daySlotsList" class="slot-list"></div>
-          </article>
-        </div>
-
-        <article class="stack" style="margin-top: 14px">
-          <div class="actions">
-            <h3 style="margin-right: auto">내 예약 목록</h3>
-            <button id="myBookingsRefreshBtn" type="button">새로고침</button>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>선생님</th>
-                <th>start</th>
-                <th>end</th>
-                <th>status</th>
-                <th>동작</th>
-              </tr>
-            </thead>
-            <tbody id="myBookingsBody"></tbody>
-          </table>
         </article>
       </section>
 
-      <section id="teacherView" class="panel hidden">
-        <h2>선생님 관리 화면</h2>
-        <div class="grid two">
-          <article class="stack">
-            <h3>시간표(Availability)</h3>
-            <form id="availabilityForm" class="stack">
-              <div class="grid three">
-                <label>ID(수정/삭제) <input name="id" type="number" min="1" placeholder="예: 1" /></label>
-                <label>요일(0~6) <input name="weekday" type="number" min="0" max="6" value="1" required /></label>
-                <label>활성 여부
-                  <select name="is_active">
-                    <option value="true">true</option>
-                    <option value="false">false</option>
-                  </select>
-                </label>
-              </div>
-              <div class="grid two">
-                <label>시작시간 <input name="start_time_local" value="09:00" required /></label>
-                <label>종료시간 <input name="end_time_local" value="12:00" required /></label>
-              </div>
-            </form>
-            <div class="actions">
-              <button id="availabilityCreateBtn" class="primary" type="button">등록</button>
-              <button id="availabilityUpdateBtn" type="button">수정</button>
-              <button id="availabilityDeleteBtn" class="danger" type="button">삭제</button>
-              <button id="availabilityRefreshBtn" type="button">새로고침</button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>weekday</th>
-                  <th>start</th>
-                  <th>end</th>
-                  <th>active</th>
-                  <th>동작</th>
-                </tr>
-              </thead>
-              <tbody id="availabilityBody"></tbody>
-            </table>
-          </article>
-
-          <article class="stack">
-            <h3>예외(Exceptions)</h3>
-            <form id="exceptionForm" class="stack">
-              <div class="grid three">
-                <label>ID(삭제) <input name="id" type="number" min="1" placeholder="예: 1" /></label>
-                <label>날짜 <input name="date_local" value="2026-02-21" required /></label>
-                <label>사유 <input name="reason" placeholder="휴무" /></label>
-              </div>
-              <div class="grid two">
-                <label>시작시간(선택) <input name="start_time_local" placeholder="10:00" /></label>
-                <label>종료시간(선택) <input name="end_time_local" placeholder="11:00" /></label>
-              </div>
-            </form>
-            <div class="actions">
-              <button id="exceptionCreateBtn" class="primary" type="button">등록</button>
-              <button id="exceptionDeleteBtn" class="danger" type="button">삭제</button>
-              <button id="exceptionRefreshBtn" type="button">새로고침</button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>date</th>
-                  <th>start</th>
-                  <th>end</th>
-                  <th>reason</th>
-                  <th>동작</th>
-                </tr>
-              </thead>
-              <tbody id="exceptionBody"></tbody>
-            </table>
-          </article>
-        </div>
-
-        <article class="stack" style="margin-top: 14px">
-          <div class="actions">
-            <h3 style="margin-right: auto">내 예약 목록</h3>
-            <button id="teacherBookingsRefreshBtn" type="button">새로고침</button>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>학생</th>
-                <th>start</th>
-                <th>end</th>
-                <th>status</th>
-                <th>동작</th>
-              </tr>
-            </thead>
-            <tbody id="teacherBookingsBody"></tbody>
-          </table>
-        </article>
-      </section>
-
-      <section class="panel">
-        <h2>API 로그</h2>
+      <section class="panel grid">
+        <div class="status" id="authStatus">로그인되지 않았습니다.</div>
+        <label>토큰 <input id="tokenBox" class="mono" readonly /></label>
+        <p class="hint">학생 계정: student@example.com / password123! | 선생님 계정: teacher@example.com / password123!</p>
         <pre id="log"></pre>
       </section>
     </main>
@@ -553,44 +199,16 @@
       const state = {
         token: localStorage.getItem('lb_token') || '',
         user: null,
-        selectedTeacherId: '',
-        monthCursor: (() => {
-          const d = new Date();
-          d.setDate(1);
-          d.setHours(0, 0, 0, 0);
-          return d;
-        })(),
-        selectedDateKey: '',
-        slotsByDate: {},
       };
 
       const authStatus = document.getElementById('authStatus');
-      const rolePill = document.getElementById('rolePill');
       const tokenBox = document.getElementById('tokenBox');
       const logEl = document.getElementById('log');
-      const teacherView = document.getElementById('teacherView');
-      const studentView = document.getElementById('studentView');
-      const teacherSelect = document.getElementById('teacherSelect');
-      const monthLabel = document.getElementById('monthLabel');
-      const calendarGrid = document.getElementById('calendarGrid');
-      const selectedDateLabel = document.getElementById('selectedDateLabel');
-      const daySlotsList = document.getElementById('daySlotsList');
-      const myBookingsBody = document.getElementById('myBookingsBody');
-      const availabilityBody = document.getElementById('availabilityBody');
-      const exceptionBody = document.getElementById('exceptionBody');
-      const teacherBookingsBody = document.getElementById('teacherBookingsBody');
-
       const loginForm = document.getElementById('loginForm');
       const registerForm = document.getElementById('registerForm');
-      const availabilityForm = document.getElementById('availabilityForm');
-      const exceptionForm = document.getElementById('exceptionForm');
-
-      function nowStamp() {
-        return new Date().toLocaleTimeString('ko-KR', { hour12: false });
-      }
 
       function pushLog(title, payload) {
-        const line = `[${nowStamp()}] ${title}\n${JSON.stringify(payload, null, 2)}\n\n`;
+        const line = `[${new Date().toLocaleTimeString('ko-KR', { hour12: false })}] ${title}\n${JSON.stringify(payload, null, 2)}\n\n`;
         logEl.textContent = line + logEl.textContent;
       }
 
@@ -614,66 +232,15 @@
         return Object.fromEntries(new FormData(form).entries());
       }
 
-      function parseRequiredId(value, label) {
-        const parsed = Number.parseInt(String(value || ''), 10);
-        if (!Number.isInteger(parsed) || parsed <= 0) {
-          throw new Error(`${label}는 양의 정수여야 합니다.`);
-        }
-        return parsed;
-      }
-
-      function formatDateTime(iso) {
-        if (!iso) return '';
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return String(iso);
-        return d.toLocaleString('ko-KR', { hour12: false });
-      }
-
-      function formatTime(iso) {
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return '';
-        return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-      }
-
-      function toDateKeyFromDate(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-      }
-
-      function toDateKeyFromIso(iso) {
-        const d = new Date(iso);
-        return Number.isNaN(d.getTime()) ? '' : toDateKeyFromDate(d);
-      }
-
-      function parseDateKey(key) {
-        return new Date(`${key}T00:00:00`);
-      }
-
-      function monthRange(cursorDate) {
-        const from = new Date(cursorDate.getFullYear(), cursorDate.getMonth(), 1, 0, 0, 0, 0);
-        const to = new Date(cursorDate.getFullYear(), cursorDate.getMonth() + 1, 1, 0, 0, 0, 0);
-        return { from, to };
-      }
-
       function renderAuth() {
         tokenBox.value = state.token || '';
         if (state.user) {
           authStatus.textContent = `로그인: ${state.user.email} (${state.user.role})`;
-          rolePill.textContent = state.user.role === 'TEACHER' ? '선생님 모드' : '학생 모드';
-          rolePill.classList.remove('hidden');
         } else if (state.token) {
           authStatus.textContent = '토큰은 있으나 사용자 정보는 미확인 상태입니다.';
-          rolePill.classList.add('hidden');
         } else {
           authStatus.textContent = '로그인되지 않았습니다.';
-          rolePill.classList.add('hidden');
         }
-
-        const role = state.user?.role;
-        teacherView.classList.toggle('hidden', role !== 'TEACHER');
-        studentView.classList.toggle('hidden', role !== 'STUDENT');
       }
 
       function setAuth(token, user) {
@@ -705,11 +272,7 @@
         const raw = await res.text();
         let payload = { raw };
         if (raw) {
-          try {
-            payload = JSON.parse(raw);
-          } catch (_) {
-            payload = { raw };
-          }
+          try { payload = JSON.parse(raw); } catch (_) { payload = { raw }; }
         }
 
         pushLog(`${method} ${path} -> ${res.status}`, payload);
@@ -731,295 +294,16 @@
         renderAuth();
       }
 
-      function renderTeachers(items) {
-        teacherSelect.innerHTML = '';
-        if (!items.length) {
-          teacherSelect.innerHTML = '<option value="">(선생님 없음)</option>';
-          state.selectedTeacherId = '';
+      function redirectByRole(role) {
+        if (role === 'STUDENT') {
+          window.location.href = '/student.html';
           return;
         }
-
-        for (const teacher of items) {
-          const opt = document.createElement('option');
-          opt.value = String(teacher.id);
-          opt.textContent = `${teacher.name} (#${teacher.id})`;
-          teacherSelect.appendChild(opt);
-        }
-
-        if (!state.selectedTeacherId || !items.some((it) => String(it.id) === String(state.selectedTeacherId))) {
-          state.selectedTeacherId = String(items[0].id);
-        }
-        teacherSelect.value = state.selectedTeacherId;
-      }
-
-      async function loadTeachers() {
-        const result = await api('/api/v1/teachers', { auth: true });
-        renderTeachers(result.items || []);
-      }
-
-      function getSlotsForDateKey(dateKey) {
-        return state.slotsByDate[dateKey] || [];
-      }
-
-      function pickDefaultSelectedDate() {
-        if (state.selectedDateKey && getSlotsForDateKey(state.selectedDateKey).length) return;
-
-        const keys = Object.keys(state.slotsByDate).sort();
-        const firstWithOpen = keys.find((key) => getSlotsForDateKey(key).some((it) => it.is_available));
-        state.selectedDateKey = firstWithOpen || keys[0] || '';
-      }
-
-      function renderCalendar() {
-        const year = state.monthCursor.getFullYear();
-        const month = state.monthCursor.getMonth();
-        monthLabel.textContent = `${year}-${String(month + 1).padStart(2, '0')}`;
-
-        const first = new Date(year, month, 1);
-        const last = new Date(year, month + 1, 0);
-        const startWeekday = first.getDay();
-
-        calendarGrid.innerHTML = '';
-
-        for (let i = 0; i < startWeekday; i += 1) {
-          const pad = document.createElement('div');
-          pad.className = 'day-cell dimmed';
-          calendarGrid.appendChild(pad);
-        }
-
-        const todayKey = toDateKeyFromDate(new Date());
-
-        for (let d = 1; d <= last.getDate(); d += 1) {
-          const date = new Date(year, month, d);
-          const key = toDateKeyFromDate(date);
-          const slots = getSlotsForDateKey(key);
-          const openCount = slots.filter((it) => it.is_available).length;
-
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'day-cell';
-          if (key === state.selectedDateKey) btn.classList.add('selected');
-          if (openCount > 0) btn.classList.add('has-open');
-          if (key < todayKey) btn.classList.add('dimmed');
-
-          btn.innerHTML = `
-            <span class="date">${d}</span>
-            <span class="count">${openCount > 0 ? `${openCount} slots` : '빈 슬롯 없음'}</span>
-          `;
-
-          btn.addEventListener('click', () => {
-            state.selectedDateKey = key;
-            renderCalendar();
-            renderDaySlots();
-          });
-
-          calendarGrid.appendChild(btn);
-        }
-      }
-
-      function renderDaySlots() {
-        daySlotsList.innerHTML = '';
-        if (!state.selectedDateKey) {
-          selectedDateLabel.textContent = '선택 가능한 날짜가 없습니다.';
-          daySlotsList.innerHTML = '<div class="hint">캘린더 범위를 조정하거나 선생님을 변경해보세요.</div>';
+        if (role === 'TEACHER') {
+          window.location.href = '/teacher.html';
           return;
         }
-
-        const date = parseDateKey(state.selectedDateKey);
-        selectedDateLabel.textContent = `${date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}`;
-
-        const slots = [...getSlotsForDateKey(state.selectedDateKey)].sort(
-          (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
-        );
-
-        if (!slots.length) {
-          daySlotsList.innerHTML = '<div class="hint">이 날짜에는 슬롯이 없습니다.</div>';
-          return;
-        }
-
-        for (const slot of slots) {
-          const row = document.createElement('div');
-          row.className = `slot-item ${slot.is_available ? '' : 'booked'}`;
-
-          const info = document.createElement('div');
-          info.innerHTML = `<strong>${formatTime(slot.start_at)} - ${formatTime(slot.end_at)}</strong><br /><small>${slot.is_available ? '예약 가능' : '이미 예약됨'}</small>`;
-
-          const action = document.createElement('button');
-          action.type = 'button';
-          action.textContent = slot.is_available ? '예약' : '예약됨';
-          action.disabled = !slot.is_available;
-          if (slot.is_available) action.className = 'primary';
-
-          action.addEventListener('click', () => {
-            runAction('예약 생성', async () => {
-              await createBooking(slot.start_at);
-              await loadSlotsForCurrentMonth();
-              await loadMyBookings();
-            });
-          });
-
-          row.appendChild(info);
-          row.appendChild(action);
-          daySlotsList.appendChild(row);
-        }
-      }
-
-      async function loadSlotsForCurrentMonth() {
-        const teacherId = parseRequiredId(teacherSelect.value, 'teacher_id');
-        const { from, to } = monthRange(state.monthCursor);
-
-        const result = await api(
-          `/api/v1/teachers/${teacherId}/slots?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`,
-          { auth: true }
-        );
-
-        const grouped = {};
-        for (const slot of result.items || []) {
-          const key = toDateKeyFromIso(slot.start_at);
-          if (!grouped[key]) grouped[key] = [];
-          grouped[key].push(slot);
-        }
-
-        state.slotsByDate = grouped;
-        pickDefaultSelectedDate();
-        renderCalendar();
-        renderDaySlots();
-      }
-
-      function renderMyBookings(items) {
-        myBookingsBody.innerHTML = '';
-        if (!items.length) {
-          myBookingsBody.innerHTML = '<tr><td colspan="6">예약 없음</td></tr>';
-          return;
-        }
-
-        for (const row of items) {
-          const canCancel = row.status === 'BOOKED';
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${row.id}</td>
-            <td>${row.teacher_email || row.teacher_name || row.teacher_user_id}</td>
-            <td class="mono">${formatDateTime(row.start_at)}</td>
-            <td class="mono">${formatDateTime(row.end_at)}</td>
-            <td>${row.status}</td>
-            <td>${canCancel ? `<button type="button" data-cancel-my-booking="${row.id}">취소</button>` : ''}</td>
-          `;
-          myBookingsBody.appendChild(tr);
-        }
-      }
-
-      async function loadMyBookings() {
-        const result = await api('/api/v1/bookings/me', { auth: true });
-        renderMyBookings(result.items || []);
-      }
-
-      async function createBooking(startAtIso) {
-        const teacherId = parseRequiredId(teacherSelect.value, 'teacher_id');
-        await api('/api/v1/bookings', {
-          method: 'POST',
-          auth: true,
-          body: {
-            teacher_user_id: teacherId,
-            start_at: startAtIso,
-          },
-        });
-      }
-
-      async function cancelBooking(bookingId) {
-        await api(`/api/v1/bookings/${bookingId}/cancel`, {
-          method: 'POST',
-          auth: true,
-        });
-      }
-
-      async function loadStudentDashboard() {
-        await loadTeachers();
-        await loadSlotsForCurrentMonth();
-        await loadMyBookings();
-      }
-
-      function renderAvailability(items) {
-        availabilityBody.innerHTML = '';
-        if (!items.length) {
-          availabilityBody.innerHTML = '<tr><td colspan="6">데이터 없음</td></tr>';
-          return;
-        }
-
-        for (const row of items) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${row.id}</td>
-            <td>${row.weekday}</td>
-            <td class="mono">${row.start_time_local}</td>
-            <td class="mono">${row.end_time_local}</td>
-            <td>${row.is_active}</td>
-            <td><button type="button" data-fill-availability="${row.id}">입력채우기</button></td>
-          `;
-          availabilityBody.appendChild(tr);
-        }
-      }
-
-      function renderExceptions(items) {
-        exceptionBody.innerHTML = '';
-        if (!items.length) {
-          exceptionBody.innerHTML = '<tr><td colspan="6">데이터 없음</td></tr>';
-          return;
-        }
-
-        for (const row of items) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${row.id}</td>
-            <td class="mono">${row.date_local}</td>
-            <td class="mono">${row.start_time_local || ''}</td>
-            <td class="mono">${row.end_time_local || ''}</td>
-            <td>${row.reason || ''}</td>
-            <td><button type="button" data-fill-exception="${row.id}">입력채우기</button></td>
-          `;
-          exceptionBody.appendChild(tr);
-        }
-      }
-
-      function renderTeacherBookings(items) {
-        teacherBookingsBody.innerHTML = '';
-        if (!items.length) {
-          teacherBookingsBody.innerHTML = '<tr><td colspan="6">데이터 없음</td></tr>';
-          return;
-        }
-
-        for (const row of items) {
-          const canCancel = row.status === 'BOOKED';
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${row.id}</td>
-            <td>${row.student_email || row.student_name || row.student_user_id}</td>
-            <td class="mono">${formatDateTime(row.start_at)}</td>
-            <td class="mono">${formatDateTime(row.end_at)}</td>
-            <td>${row.status}</td>
-            <td>${canCancel ? `<button type="button" data-cancel-teacher-booking="${row.id}">취소</button>` : ''}</td>
-          `;
-          teacherBookingsBody.appendChild(tr);
-        }
-      }
-
-      async function loadTeacherAvailability() {
-        const result = await api('/api/v1/teachers/me/availability', { auth: true });
-        renderAvailability(result.items || []);
-      }
-
-      async function loadTeacherExceptions() {
-        const result = await api('/api/v1/teachers/me/exceptions', { auth: true });
-        renderExceptions(result.items || []);
-      }
-
-      async function loadTeacherBookings() {
-        const result = await api('/api/v1/teachers/me/bookings', { auth: true });
-        renderTeacherBookings(result.items || []);
-      }
-
-      async function loadTeacherDashboard() {
-        await loadTeacherAvailability();
-        await loadTeacherExceptions();
-        await loadTeacherBookings();
+        window.location.href = '/index.html';
       }
 
       document.getElementById('teacherPreset').addEventListener('click', () => {
@@ -1038,26 +322,12 @@
         });
       });
 
-      document.getElementById('meBtn').addEventListener('click', () => {
-        runAction('내 정보', async () => {
-          await syncMe();
-          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
-          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
-        });
-      });
-
       document.getElementById('logoutBtn').addEventListener('click', () => {
         runAction('로그아웃', async () => {
           if (state.token) {
             await api('/api/v1/auth/logout', { method: 'POST', auth: true });
           }
           setAuth('', null);
-          myBookingsBody.innerHTML = '';
-          availabilityBody.innerHTML = '';
-          exceptionBody.innerHTML = '';
-          teacherBookingsBody.innerHTML = '';
-          calendarGrid.innerHTML = '';
-          daySlotsList.innerHTML = '';
         });
       });
 
@@ -1070,8 +340,7 @@
             body: { email: form.email, password: form.password },
           });
           setAuth(result.token, result.user);
-          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
-          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+          redirectByRole(result.user?.role);
         });
       });
 
@@ -1089,195 +358,18 @@
             },
           });
           setAuth(result.token, result.user);
-          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
-          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+          redirectByRole(result.user?.role);
         });
-      });
-
-      teacherSelect.addEventListener('change', () => {
-        state.selectedTeacherId = teacherSelect.value;
-        runAction('선생님 전환', loadSlotsForCurrentMonth);
-      });
-
-      document.getElementById('teachersRefreshBtn').addEventListener('click', () => {
-        runAction('선생님 조회', loadTeachers);
-      });
-
-      document.getElementById('prevMonthBtn').addEventListener('click', () => {
-        state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() - 1, 1);
-        runAction('이전 달 슬롯 조회', loadSlotsForCurrentMonth);
-      });
-
-      document.getElementById('nextMonthBtn').addEventListener('click', () => {
-        state.monthCursor = new Date(state.monthCursor.getFullYear(), state.monthCursor.getMonth() + 1, 1);
-        runAction('다음 달 슬롯 조회', loadSlotsForCurrentMonth);
-      });
-
-      document.getElementById('monthRefreshBtn').addEventListener('click', () => {
-        runAction('캘린더 새로고침', loadSlotsForCurrentMonth);
-      });
-
-      document.getElementById('myBookingsRefreshBtn').addEventListener('click', () => {
-        runAction('내 예약 조회', loadMyBookings);
-      });
-
-      myBookingsBody.addEventListener('click', (e) => {
-        const bookingId = e.target?.dataset?.cancelMyBooking;
-        if (!bookingId) return;
-        runAction('내 예약 취소', async () => {
-          await cancelBooking(bookingId);
-          await loadMyBookings();
-          await loadSlotsForCurrentMonth();
-        });
-      });
-
-      document.getElementById('availabilityCreateBtn').addEventListener('click', () => {
-        runAction('시간표 등록', async () => {
-          const form = formObject(availabilityForm);
-          await api('/api/v1/teachers/me/availability', {
-            method: 'POST',
-            auth: true,
-            body: {
-              weekday: Number(form.weekday),
-              start_time_local: form.start_time_local,
-              end_time_local: form.end_time_local,
-              is_active: form.is_active === 'true',
-            },
-          });
-          await loadTeacherAvailability();
-        });
-      });
-
-      document.getElementById('availabilityUpdateBtn').addEventListener('click', () => {
-        runAction('시간표 수정', async () => {
-          const id = parseRequiredId(availabilityForm.elements.id.value, 'availability id');
-          const form = formObject(availabilityForm);
-          await api(`/api/v1/teachers/me/availability/${id}`, {
-            method: 'PATCH',
-            auth: true,
-            body: {
-              weekday: Number(form.weekday),
-              start_time_local: form.start_time_local,
-              end_time_local: form.end_time_local,
-              is_active: form.is_active === 'true',
-            },
-          });
-          await loadTeacherAvailability();
-        });
-      });
-
-      document.getElementById('availabilityDeleteBtn').addEventListener('click', () => {
-        runAction('시간표 삭제', async () => {
-          const id = parseRequiredId(availabilityForm.elements.id.value, 'availability id');
-          await api(`/api/v1/teachers/me/availability/${id}`, {
-            method: 'DELETE',
-            auth: true,
-          });
-          await loadTeacherAvailability();
-        });
-      });
-
-      document.getElementById('availabilityRefreshBtn').addEventListener('click', () => {
-        runAction('시간표 조회', loadTeacherAvailability);
-      });
-
-      availabilityBody.addEventListener('click', (e) => {
-        const id = e.target?.dataset?.fillAvailability;
-        if (!id) return;
-        const tr = e.target.closest('tr');
-        availabilityForm.elements.id.value = id;
-        availabilityForm.elements.weekday.value = tr.children[1].textContent.trim();
-        availabilityForm.elements.start_time_local.value = tr.children[2].textContent.trim().slice(0, 5);
-        availabilityForm.elements.end_time_local.value = tr.children[3].textContent.trim().slice(0, 5);
-        availabilityForm.elements.is_active.value = tr.children[4].textContent.trim() === 'true' ? 'true' : 'false';
-      });
-
-      document.getElementById('exceptionCreateBtn').addEventListener('click', () => {
-        runAction('예외 등록', async () => {
-          const form = formObject(exceptionForm);
-          const hasStart = Boolean(form.start_time_local.trim());
-          const hasEnd = Boolean(form.end_time_local.trim());
-          if (hasStart !== hasEnd) {
-            throw new Error('예외 시작/종료는 함께 입력하거나 둘 다 비워야 합니다.');
-          }
-
-          const body = {
-            date_local: form.date_local,
-            reason: form.reason,
-          };
-
-          if (hasStart) {
-            body.start_time_local = form.start_time_local;
-            body.end_time_local = form.end_time_local;
-          }
-
-          await api('/api/v1/teachers/me/exceptions', {
-            method: 'POST',
-            auth: true,
-            body,
-          });
-          await loadTeacherExceptions();
-        });
-      });
-
-      document.getElementById('exceptionDeleteBtn').addEventListener('click', () => {
-        runAction('예외 삭제', async () => {
-          const id = parseRequiredId(exceptionForm.elements.id.value, 'exception id');
-          await api(`/api/v1/teachers/me/exceptions/${id}`, {
-            method: 'DELETE',
-            auth: true,
-          });
-          await loadTeacherExceptions();
-        });
-      });
-
-      document.getElementById('exceptionRefreshBtn').addEventListener('click', () => {
-        runAction('예외 조회', loadTeacherExceptions);
-      });
-
-      exceptionBody.addEventListener('click', (e) => {
-        const id = e.target?.dataset?.fillException;
-        if (!id) return;
-        const tr = e.target.closest('tr');
-        exceptionForm.elements.id.value = id;
-        exceptionForm.elements.date_local.value = tr.children[1].textContent.trim();
-        exceptionForm.elements.start_time_local.value = tr.children[2].textContent.trim().slice(0, 5);
-        exceptionForm.elements.end_time_local.value = tr.children[3].textContent.trim().slice(0, 5);
-        exceptionForm.elements.reason.value = tr.children[4].textContent.trim();
-      });
-
-      document.getElementById('teacherBookingsRefreshBtn').addEventListener('click', () => {
-        runAction('선생님 예약 조회', loadTeacherBookings);
-      });
-
-      teacherBookingsBody.addEventListener('click', (e) => {
-        const bookingId = e.target?.dataset?.cancelTeacherBooking;
-        if (!bookingId) return;
-        runAction('선생님 예약 취소', async () => {
-          await cancelBooking(bookingId);
-          await loadTeacherBookings();
-        });
-      });
-
-      window.addEventListener('unhandledrejection', (e) => {
-        pushLog('UI_REJECTION', {
-          message: e.reason?.message || String(e.reason),
-          payload: e.reason?.payload,
-        });
-      });
-
-      window.addEventListener('error', (e) => {
-        pushLog('UI_ERROR', { message: e.message });
       });
 
       async function bootstrap() {
         renderAuth();
         if (!state.token) return;
-
         await runAction('세션 복원', async () => {
           await syncMe();
-          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
-          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+          if (state.user?.role) {
+            redirectByRole(state.user.role);
+          }
         });
       }
 

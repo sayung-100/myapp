@@ -5,6 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/index.js",
+    "pretest": "node scripts/migrate.js",
+    "test": "node --test --test-concurrency=1 test",
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js"
   },

@@ -7,6 +7,7 @@ RUN npm install
 
 COPY backend/src ./src
 COPY backend/scripts ./scripts
+COPY backend/test ./test
 COPY db ./db
 
 EXPOSE 4000
