@@ -101,8 +101,36 @@ async function requireAuth(req, res, next) {
   }
 }
 
+async function optionalAuth(req, res, next) {
+  try {
+    const token = extractBearerToken(req);
+    if (!token) {
+      req.auth = null;
+      return next();
+    }
+    const payload = jwt.verify(token, getJwtSecret());
+    if (await isRevokedToken(payload.jti || null)) {
+      req.auth = null;
+      return next();
+    }
+    req.auth = {
+      userId: Number(payload.sub),
+      role: payload.role,
+      email: payload.email,
+      token,
+      tokenId: payload.jti || null,
+      expiresAtEpochSec: Number.isInteger(payload.exp) ? payload.exp : null,
+    };
+    return next();
+  } catch (err) {
+    req.auth = null;
+    return next();
+  }
+}
+
 module.exports = {
   signAccessToken,
   requireAuth,
+  optionalAuth,
   revokeAccessToken,
 };

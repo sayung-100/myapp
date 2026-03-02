@@ -38,3 +38,30 @@ docker compose up --build -d backend frontend
 ## 5) 참고 문서
 - 일일 인수인계: `/Users/ndh/workspace/docs/handover-YYYY-MM-DD.md`
 - 작업 기록: `/Users/ndh/workspace/docs/worklog-2026-03-02.md`
+
+## 6) 2026-03-02 추가 반영 (최신)
+- 설정파일 기반 운영값 적용
+  - 파일: `/Users/ndh/workspace/backend/config/app.config.json`
+  - 로더: `/Users/ndh/workspace/backend/src/config.js`
+  - 반영된 설정: 게스트 취소사유 필수, PIN 락아웃 정책, 완료 코멘트 필수 정책, 스케줄러 주기
+- DB 스키마 추가
+  - `/Users/ndh/workspace/db/migrations/009_guest_pin_lockout_and_comment_split.sql`
+  - `guest_students.pin_failed_attempts`, `guest_students.pin_locked_until`
+  - `bookings.teacher_private_comment`, `bookings.student_comment`
+- API 정책
+  - 교사 완료처리: `teacher_private_comment` + `student_comment` 분리 저장
+  - 게스트 취소(일반/토큰): `reason` 필수
+  - 게스트 PIN 연속 실패 시 `423 guest_pin_locked`
+- 프론트 정책
+  - 학생 예약목록은 `student_comment` 표시
+  - 교사 예약목록은 학생코멘트/교사메모 분리 표시
+  - 완료/코멘트 수정 시 두 코멘트 필수 입력
+
+## 7) 재검증 명령 (최신)
+```bash
+docker-compose build backend
+docker-compose run --rm backend npm test
+docker-compose up --build -d backend frontend
+docker-compose exec -T backend npm run -s migrate
+bash /Users/ndh/workspace/scripts/smoke-test-api.sh
+```

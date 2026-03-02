@@ -5,6 +5,7 @@ const { pool } = require('../src/db');
 const { startServer } = require('../src/index');
 
 const PASSWORD = 'password123!';
+const TEST_TIMEZONE = 'Asia/Seoul';
 
 let server;
 let baseUrl;
@@ -16,14 +17,38 @@ function buildSlotStartUtc() {
   return slotStart;
 }
 
-function formatLocalDateUtc(date) {
-  return date.toISOString().slice(0, 10);
+function getDateTimePartsInTimezone(date, timezone = TEST_TIMEZONE) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const map = {};
+  for (const part of parts) {
+    if (part.type !== 'literal') {
+      map[part.type] = part.value;
+    }
+  }
+  return map;
 }
 
-function formatLocalTimeUtc(date) {
-  const hh = String(date.getUTCHours()).padStart(2, '0');
-  const mm = String(date.getUTCMinutes()).padStart(2, '0');
-  return `${hh}:${mm}`;
+function formatLocalDateInTimezone(date, timezone = TEST_TIMEZONE) {
+  const parts = getDateTimePartsInTimezone(date, timezone);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function formatLocalTimeInTimezone(date, timezone = TEST_TIMEZONE) {
+  const parts = getDateTimePartsInTimezone(date, timezone);
+  return `${parts.hour}:${parts.minute}`;
+}
+
+function getWeekdayInTimezone(date, timezone = TEST_TIMEZONE) {
+  const dateKey = formatLocalDateInTimezone(date, timezone);
+  return new Date(`${dateKey}T00:00:00.000Z`).getUTCDay();
 }
 
 function closeServer(httpServer) {
@@ -93,6 +118,7 @@ async function seedBookableScenario({
   await pool.query(`
     TRUNCATE TABLE
       bookings,
+      guest_students,
       availability_exceptions,
       weekly_availabilities,
       teacher_profiles,
@@ -125,13 +151,13 @@ async function seedBookableScenario({
       INSERT INTO teacher_profiles (
         teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days
       )
-      VALUES ($1, 60, 'UTC', $2, $3)
+      VALUES ($1, 60, $4, $2, $3)
     `,
-    [teacherId, cancelCutoffHours, bookingWindowDays]
+    [teacherId, cancelCutoffHours, bookingWindowDays, TEST_TIMEZONE]
   );
   const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
-  const startTimeLocal = availabilityStartTimeLocal || formatLocalTimeUtc(slotStart);
-  const endTimeLocal = availabilityEndTimeLocal || formatLocalTimeUtc(slotEnd);
+  const startTimeLocal = availabilityStartTimeLocal || formatLocalTimeInTimezone(slotStart, TEST_TIMEZONE);
+  const endTimeLocal = availabilityEndTimeLocal || formatLocalTimeInTimezone(slotEnd, TEST_TIMEZONE);
 
   await pool.query(
     `
@@ -140,7 +166,7 @@ async function seedBookableScenario({
       )
       VALUES ($1, $2, $3::time, $4::time, TRUE)
     `,
-    [teacherId, slotStart.getUTCDay(), startTimeLocal, endTimeLocal]
+    [teacherId, getWeekdayInTimezone(slotStart, TEST_TIMEZONE), startTimeLocal, endTimeLocal]
   );
 
   return {
@@ -341,7 +367,7 @@ test('all-day exception removes matching day slots and blocks booking', async ()
     method: 'POST',
     token: teacherToken,
     body: {
-      date_local: formatLocalDateUtc(scenario.slotStart),
+      date_local: formatLocalDateInTimezone(scenario.slotStart, TEST_TIMEZONE),
       reason: 'day off',
     },
   });
@@ -380,16 +406,21 @@ test('partial exception blocks only overlapping slot', async () => {
       )
       VALUES ($1, $2, $3::time, $4::time, TRUE)
     `,
-    [scenario.teacherId, scenario.slotStart.getUTCDay(), formatLocalTimeUtc(nextSlot), formatLocalTimeUtc(nextSlotEnd)]
+    [
+      scenario.teacherId,
+      getWeekdayInTimezone(scenario.slotStart, TEST_TIMEZONE),
+      formatLocalTimeInTimezone(nextSlot, TEST_TIMEZONE),
+      formatLocalTimeInTimezone(nextSlotEnd, TEST_TIMEZONE),
+    ]
   );
 
   const createException = await requestJson('/api/v1/teachers/me/exceptions', {
     method: 'POST',
     token: teacherToken,
     body: {
-      date_local: formatLocalDateUtc(scenario.slotStart),
-      start_time_local: formatLocalTimeUtc(scenario.slotStart),
-      end_time_local: formatLocalTimeUtc(nextSlot),
+      date_local: formatLocalDateInTimezone(scenario.slotStart, TEST_TIMEZONE),
+      start_time_local: formatLocalTimeInTimezone(scenario.slotStart, TEST_TIMEZONE),
+      end_time_local: formatLocalTimeInTimezone(nextSlot, TEST_TIMEZONE),
       reason: 'meeting',
     },
   });
@@ -405,4 +436,310 @@ test('partial exception blocks only overlapping slot', async () => {
   const stillAvailable = findSlot(slots.body.items, nextSlot);
   assert.ok(stillAvailable, 'next slot should still be visible');
   assert.equal(stillAvailable.is_available, true);
+});
+
+test('past booked lesson is auto-completed when bookings are queried', async () => {
+  const scenario = await seedBookableScenario();
+  const teacherToken = await login('teacher@example.com');
+  const studentIdResult = await pool.query(`SELECT id FROM users WHERE email = 'student@example.com' LIMIT 1`);
+  const studentId = Number(studentIdResult.rows[0].id);
+  const pastStart = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+
+  const inserted = await pool.query(
+    `
+      INSERT INTO bookings (teacher_user_id, student_user_id, start_at, duration_min, status)
+      VALUES ($1, $2, $3::timestamptz, 60, 'BOOKED')
+      RETURNING id
+    `,
+    [scenario.teacherId, studentId, pastStart]
+  );
+  const bookingId = String(inserted.rows[0].id);
+
+  const list = await requestJson('/api/v1/teachers/me/bookings', {
+    token: teacherToken,
+  });
+  assert.equal(list.status, 200);
+
+  const row = (list.body.items || []).find((item) => String(item.id) === bookingId);
+  assert.ok(row, 'booking row should exist');
+  assert.equal(row.status, 'COMPLETED');
+  assert.ok(row.completed_at, 'completed_at should be set');
+});
+
+test('teacher can manually complete before end time and save split comments', async () => {
+  const scenario = await seedBookableScenario();
+  const studentToken = await login('student@example.com');
+  const teacherToken = await login('teacher@example.com');
+
+  const created = await requestJson('/api/v1/bookings', {
+    method: 'POST',
+    token: studentToken,
+    body: {
+      teacher_user_id: scenario.teacherId,
+      start_at: scenario.slotStartIso,
+    },
+  });
+  assert.equal(created.status, 201);
+  const bookingId = String(created.body.item.id);
+
+  const completed = await requestJson(`/api/v1/teachers/me/bookings/${bookingId}/complete`, {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      teacher_private_comment: '교사용: 숙제 체크 필요',
+      student_comment: '학생용: 숙제 3쪽까지',
+    },
+  });
+  assert.equal(completed.status, 200);
+  assert.equal(completed.body.item.status, 'COMPLETED');
+  assert.equal(completed.body.item.teacher_private_comment, '교사용: 숙제 체크 필요');
+  assert.equal(completed.body.item.student_comment, '학생용: 숙제 3쪽까지');
+  assert.ok(completed.body.item.completed_at);
+
+  const updatedComment = await requestJson(`/api/v1/teachers/me/bookings/${bookingId}/complete`, {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      teacher_private_comment: '교사용: 코멘트 수정',
+      student_comment: '학생용: 코멘트 수정',
+    },
+  });
+  assert.equal(updatedComment.status, 200);
+  assert.equal(updatedComment.body.item.status, 'COMPLETED');
+  assert.equal(updatedComment.body.item.teacher_private_comment, '교사용: 코멘트 수정');
+  assert.equal(updatedComment.body.item.student_comment, '학생용: 코멘트 수정');
+
+  const slots = await requestJson(
+    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}&step_min=60`,
+    { token: studentToken }
+  );
+  assert.equal(slots.status, 200);
+  const target = findSlot(slots.body.items, scenario.slotStart);
+  assert.ok(target, 'slot should still be visible');
+  assert.equal(target.is_available, false, 'manually completed future booking must keep slot blocked');
+});
+
+test('teacher complete requires both private and student comments', async () => {
+  const scenario = await seedBookableScenario();
+  const studentToken = await login('student@example.com');
+  const teacherToken = await login('teacher@example.com');
+
+  const created = await requestJson('/api/v1/bookings', {
+    method: 'POST',
+    token: studentToken,
+    body: {
+      teacher_user_id: scenario.teacherId,
+      start_at: scenario.slotStartIso,
+    },
+  });
+  assert.equal(created.status, 201);
+
+  const bookingId = String(created.body.item.id);
+  const missing = await requestJson(`/api/v1/teachers/me/bookings/${bookingId}/complete`, {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      student_comment: '학생에게 전달',
+    },
+  });
+  assert.equal(missing.status, 400);
+  assert.equal(missing.body.error, 'teacher_private_comment is required');
+});
+
+test('public guest booking supports create, lookup, and cancel by phone+pin', async () => {
+  const scenario = await seedBookableScenario();
+
+  const created = await requestJson('/api/v1/public/bookings', {
+    method: 'POST',
+    body: {
+      teacher_user_id: scenario.teacherId,
+      start_at: scenario.slotStartIso,
+      student_name: '홍길동',
+      phone: '010-1234-5678',
+      pin: '1234',
+    },
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.item.status, 'PENDING');
+  assert.equal(created.body.item.is_guest_student, true);
+  assert.ok(created.body.public_access?.token, 'public access token should be returned');
+
+  const lookup = await requestJson('/api/v1/public/bookings/lookup', {
+    method: 'POST',
+    body: {
+      phone: '01012345678',
+      pin: '1234',
+    },
+  });
+  assert.equal(lookup.status, 200);
+  assert.ok(Array.isArray(lookup.body.items));
+  const found = lookup.body.items.find((row) => String(row.id) === String(created.body.item.id));
+  assert.ok(found, 'created guest booking must be found by lookup');
+
+  const canceled = await requestJson(`/api/v1/public/bookings/${created.body.item.id}/cancel`, {
+    method: 'POST',
+    body: {
+      phone: '01012345678',
+      pin: '1234',
+      reason: 'guest cancel',
+    },
+  });
+  assert.equal(canceled.status, 200);
+  assert.equal(canceled.body.item.status, 'CANCELED_BY_STUDENT');
+});
+
+test('public guest cancel requires reason', async () => {
+  const scenario = await seedBookableScenario();
+
+  const created = await requestJson('/api/v1/public/bookings', {
+    method: 'POST',
+    body: {
+      teacher_user_id: scenario.teacherId,
+      start_at: scenario.slotStartIso,
+      student_name: '사유필수',
+      phone: '01022223333',
+      pin: '4321',
+    },
+  });
+  assert.equal(created.status, 201);
+
+  const canceled = await requestJson(`/api/v1/public/bookings/${created.body.item.id}/cancel`, {
+    method: 'POST',
+    body: {
+      phone: '01022223333',
+      pin: '4321',
+    },
+  });
+  assert.equal(canceled.status, 400);
+  assert.equal(canceled.body.error, 'cancel_reason is required');
+});
+
+test('public guest booking can be canceled by manage token', async () => {
+  const scenario = await seedBookableScenario();
+
+  const created = await requestJson('/api/v1/public/bookings', {
+    method: 'POST',
+    body: {
+      teacher_user_id: scenario.teacherId,
+      start_at: scenario.slotStartIso,
+      student_name: '김영희',
+      phone: '01099998888',
+      pin: '5678',
+    },
+  });
+  assert.equal(created.status, 201);
+  const bookingId = created.body.item.id;
+  const token = created.body.public_access?.token;
+  assert.ok(token, 'manage token should exist');
+
+  const canceled = await requestJson(`/api/v1/public/bookings/${bookingId}/cancel-by-token`, {
+    method: 'POST',
+    body: {
+      token,
+      reason: 'link cancel',
+    },
+  });
+  assert.equal(canceled.status, 200);
+  assert.equal(canceled.body.item.status, 'CANCELED_BY_STUDENT');
+});
+
+test('teacher can reset guest pin manually', async () => {
+  const scenario = await seedBookableScenario();
+  const teacherToken = await login('teacher@example.com');
+
+  const created = await requestJson('/api/v1/public/bookings', {
+    method: 'POST',
+    body: {
+      teacher_user_id: scenario.teacherId,
+      start_at: scenario.slotStartIso,
+      student_name: '게스트',
+      phone: '01077776666',
+      pin: '1111',
+    },
+  });
+  assert.equal(created.status, 201);
+
+  const guestRow = await pool.query(
+    `
+      SELECT id
+      FROM guest_students
+      WHERE phone_normalized = '01077776666'
+      LIMIT 1
+    `
+  );
+  const guestId = String(guestRow.rows[0].id);
+
+  const reset = await requestJson(`/api/v1/teachers/me/guest-students/${guestId}/reset-pin`, {
+    method: 'POST',
+    token: teacherToken,
+    body: { pin: '2222' },
+  });
+  assert.equal(reset.status, 200);
+  assert.equal(reset.body.ok, true);
+
+  const oldLookup = await requestJson('/api/v1/public/bookings/lookup', {
+    method: 'POST',
+    body: {
+      phone: '01077776666',
+      pin: '1111',
+    },
+  });
+  assert.equal(oldLookup.status, 401);
+
+  const newLookup = await requestJson('/api/v1/public/bookings/lookup', {
+    method: 'POST',
+    body: {
+      phone: '01077776666',
+      pin: '2222',
+    },
+  });
+  assert.equal(newLookup.status, 200);
+  assert.ok((newLookup.body.items || []).length >= 1);
+});
+
+test('guest pin is locked after repeated failures', async () => {
+  const scenario = await seedBookableScenario();
+
+  const created = await requestJson('/api/v1/public/bookings', {
+    method: 'POST',
+    body: {
+      teacher_user_id: scenario.teacherId,
+      start_at: scenario.slotStartIso,
+      student_name: '락아웃',
+      phone: '01012344321',
+      pin: '2468',
+    },
+  });
+  assert.equal(created.status, 201);
+
+  for (let i = 0; i < 4; i += 1) {
+    const wrong = await requestJson('/api/v1/public/bookings/lookup', {
+      method: 'POST',
+      body: {
+        phone: '01012344321',
+        pin: '0000',
+      },
+    });
+    assert.equal(wrong.status, 401);
+  }
+
+  const locked = await requestJson('/api/v1/public/bookings/lookup', {
+    method: 'POST',
+    body: {
+      phone: '01012344321',
+      pin: '0000',
+    },
+  });
+  assert.equal(locked.status, 423);
+  assert.equal(locked.body.error, 'guest_pin_locked');
+
+  const stillLocked = await requestJson('/api/v1/public/bookings/lookup', {
+    method: 'POST',
+    body: {
+      phone: '01012344321',
+      pin: '2468',
+    },
+  });
+  assert.equal(stillLocked.status, 423);
+  assert.equal(stillLocked.body.error, 'guest_pin_locked');
 });

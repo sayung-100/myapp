@@ -1,0 +1,25 @@
+{
+  "schedulers": {
+    "autoCompletePollMs": 60000,
+    "guestRetentionPollMs": 86400000
+  },
+  "guest": {
+    "publicAccessDays": 90,
+    "dataRetentionDays": 365,
+    "cancelReasonRequired": true,
+    "rateLimit": {
+      "windowMs": 300000,
+      "max": 60
+    },
+    "pin": {
+      "maxFailedAttempts": 5,
+      "lockoutMinutes": 15
+    }
+  },
+  "booking": {
+    "comments": {
+      "requireTeacherPrivateOnComplete": true,
+      "requireStudentCommentOnComplete": true
+    }
+  }
+}

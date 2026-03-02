@@ -999,14 +999,24 @@
         display: none !important;
       }
 
+      body.mode-student #teacherView {
+        display: none !important;
+      }
+
       body.mode-teacher .top-links a[href='/teacher.html'] {
+        background: #1363df;
+        color: #fff;
+        border-color: #1363df;
+      }
+
+      body.mode-student .top-links a[href='/student.html'] {
         background: #1363df;
         color: #fff;
         border-color: #1363df;
       }
     </style>
   </head>
-  <body class="mode-teacher">
+  <body>
     <main class="wrap">
       <nav class="topbar reveal">
         <div class="brand">
@@ -1113,6 +1123,22 @@
           </aside>
 
           <div class="workspace-content">
+            <article id="guestAccessPanel" class="subpanel" style="margin-bottom: 12px">
+                <h3>비회원 예약 (로그인 없이)</h3>
+                <form id="guestAccessForm" class="grid">
+                  <div class="grid three">
+                    <label>수강생 이름 <input name="student_name" placeholder="예: 김영희" /></label>
+                    <label>휴대폰번호 <input name="phone" placeholder="예: 01012345678" /></label>
+                    <label>PIN(4자리) <input name="pin" type="password" inputmode="numeric" maxlength="4" placeholder="1234" /></label>
+                  </div>
+                </form>
+                <div class="actions">
+                  <button id="guestLookupBtn" type="button">비회원 예약 조회</button>
+                  <button id="guestTokenCancelBtn" type="button" class="danger hidden">링크로 예약 취소</button>
+                </div>
+                <p class="hint">비회원은 휴대폰+PIN으로 예약 조회/취소할 수 있습니다. 예약 시 이 정보를 사용합니다.</p>
+            </article>
+
             <section id="studentCalendarSection">
               <div class="stats">
                 <article class="stat-card">
@@ -1195,6 +1221,7 @@
                         <th>start</th>
                         <th>end</th>
                         <th>status</th>
+                        <th>학생 코멘트</th>
                         <th>동작</th>
                       </tr>
                     </thead>
@@ -1375,6 +1402,8 @@
                         <th>start</th>
                         <th>end</th>
                         <th>status</th>
+                        <th>학생 코멘트</th>
+                        <th>선생님 메모</th>
                         <th>동작</th>
                       </tr>
                     </thead>
@@ -1489,9 +1518,23 @@
         teacherCreateDraft: null,
         teacherExceptionDraft: null,
         teacherCreateType: 'availability',
+        guestPhone: '',
+        guestPin: '',
+        guestStudentName: '',
+        publicManageBookingId: parseOptionalId(new URLSearchParams(window.location.search).get('public_booking_id')),
+        publicManageToken: String(new URLSearchParams(window.location.search).get('public_token') || '').trim(),
       };
-      const PAGE_MODE = 'TEACHER';
-      const PAGE_SECTION = 'all';
+      const PAGE_PATH = String(window.location.pathname || '/').toLowerCase();
+      const PAGE_MODE = PAGE_PATH.includes('/student') ? 'STUDENT' : 'TEACHER';
+      const PAGE_SECTION = PAGE_PATH.includes('-calendar')
+        ? 'calendar'
+        : PAGE_PATH.includes('-bookings')
+          ? 'bookings'
+          : PAGE_PATH.includes('-manage')
+            ? 'manage'
+            : 'all';
+      document.body.classList.toggle('mode-teacher', PAGE_MODE === 'TEACHER');
+      document.body.classList.toggle('mode-student', PAGE_MODE === 'STUDENT');
 
       const authStatus = document.getElementById('authStatus');
       const rolePill = document.getElementById('rolePill');
@@ -1531,6 +1574,10 @@
       const teacherCreateForm = document.getElementById('teacherCreateForm');
       const teacherExceptionModal = document.getElementById('teacherExceptionModal');
       const teacherExceptionQuickForm = document.getElementById('teacherExceptionQuickForm');
+      const guestAccessPanel = document.getElementById('guestAccessPanel');
+      const guestAccessForm = document.getElementById('guestAccessForm');
+      const guestLookupBtn = document.getElementById('guestLookupBtn');
+      const guestTokenCancelBtn = document.getElementById('guestTokenCancelBtn');
 
       const loginForm = document.getElementById('loginForm');
       const registerForm = document.getElementById('registerForm');
@@ -1582,6 +1629,38 @@
           return null;
         }
         return parsed;
+      }
+
+      function isGuestStudentMode() {
+        return PAGE_MODE === 'STUDENT' && !state.user;
+      }
+
+      function normalizePhoneInput(value) {
+        return String(value || '')
+          .replace(/\D/g, '')
+          .trim();
+      }
+
+      function readGuestCredentialInput({ requireStudentName = false } = {}) {
+        const studentName = String(guestAccessForm?.elements?.student_name?.value || '').trim();
+        const phone = normalizePhoneInput(guestAccessForm?.elements?.phone?.value || '');
+        const pin = String(guestAccessForm?.elements?.pin?.value || '').trim();
+        if (requireStudentName && !studentName) {
+          throw new Error('수강생 이름을 입력해 주세요.');
+        }
+        if (!phone || phone.length < 9 || phone.length > 15) {
+          throw new Error('휴대폰번호를 올바르게 입력해 주세요.');
+        }
+        if (!/^\d{4}$/.test(pin)) {
+          throw new Error('PIN은 4자리 숫자여야 합니다.');
+        }
+        return { student_name: studentName, phone, pin };
+      }
+
+      function applyGuestCredentialSnapshot(payload) {
+        state.guestStudentName = String(payload?.student_name || '').trim();
+        state.guestPhone = String(payload?.phone || '').trim();
+        state.guestPin = String(payload?.pin || '').trim();
       }
 
       function formatDateTime(iso) {
@@ -1860,10 +1939,24 @@
         }
 
         const role = state.user?.role;
-        teacherView.classList.toggle('hidden', role !== 'TEACHER');
-        studentView.classList.toggle('hidden', role !== 'STUDENT');
-        if (role) {
-          applyPageSection(role);
+        if (PAGE_MODE === 'TEACHER') {
+          teacherView.classList.toggle('hidden', role !== 'TEACHER');
+          studentView.classList.add('hidden');
+          if (role === 'TEACHER') {
+            applyPageSection('TEACHER');
+          }
+        } else {
+          teacherView.classList.add('hidden');
+          studentView.classList.remove('hidden');
+          applyPageSection('STUDENT');
+        }
+
+        if (guestAccessPanel) {
+          guestAccessPanel.classList.toggle('hidden', !isGuestStudentMode());
+        }
+        if (guestTokenCancelBtn) {
+          const showTokenCancel = isGuestStudentMode() && state.publicManageBookingId && state.publicManageToken;
+          guestTokenCancelBtn.classList.toggle('hidden', !showTokenCancel);
         }
       }
 
@@ -1970,7 +2063,7 @@
       }
 
       async function loadTeachers() {
-        const result = await api('/api/v1/teachers', { auth: true });
+        const result = await api('/api/v1/teachers');
         state.teachers = result.items || [];
         renderTeachers(state.teachers);
       }
@@ -2194,7 +2287,7 @@
 
         const result = await api(
           `/api/v1/teachers/${teacherId}/slots?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}&step_min=${encodeURIComponent(String(state.studentGridStepMin || 30))}`,
-          { auth: true }
+          {}
         );
 
         const grouped = {};
@@ -2537,12 +2630,19 @@
       function renderMyBookings(items) {
         myBookingsBody.innerHTML = '';
         if (!items.length) {
-          myBookingsBody.innerHTML = '<tr><td colspan="6">예약 없음</td></tr>';
+          myBookingsBody.innerHTML = '<tr><td colspan="7">예약 없음</td></tr>';
           return;
         }
 
         for (const row of items) {
           const canCancel = ['PENDING', 'BOOKED'].includes(row.status);
+          const canCopyLink = Boolean(row?.public_access?.manage_url);
+          const actionButtons = [
+            canCancel ? `<button type="button" data-cancel-my-booking="${row.id}">취소</button>` : '',
+            canCopyLink ? `<button type="button" data-copy-my-manage-link="${escapeHtml(row.public_access.manage_url)}">링크복사</button>` : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${row.id}</td>
@@ -2550,15 +2650,33 @@
             <td class="mono">${formatDateTime(row.start_at)}</td>
             <td class="mono">${formatDateTime(row.end_at)}</td>
             <td>${statusBadge(row.status)}</td>
-            <td>${canCancel ? `<button type="button" data-cancel-my-booking="${row.id}">취소</button>` : ''}</td>
+            <td>${escapeHtml(row.student_comment || '')}</td>
+            <td>${actionButtons}</td>
           `;
           myBookingsBody.appendChild(tr);
         }
       }
 
       async function loadMyBookings() {
-        const result = await api('/api/v1/bookings/me', { auth: true });
-        state.studentBookings = result.items || [];
+        if (state.user?.role === 'STUDENT') {
+          const result = await api('/api/v1/bookings/me', { auth: true });
+          state.studentBookings = result.items || [];
+        } else if (isGuestStudentMode()) {
+          if (!state.guestPhone || !state.guestPin) {
+            state.studentBookings = [];
+          } else {
+            const result = await api('/api/v1/public/bookings/lookup', {
+              method: 'POST',
+              body: {
+                phone: state.guestPhone,
+                pin: state.guestPin,
+              },
+            });
+            state.studentBookings = result.items || [];
+          }
+        } else {
+          state.studentBookings = [];
+        }
         renderMyBookings(state.studentBookings);
         renderStudentStats();
       }
@@ -2569,28 +2687,98 @@
         if (!Number.isInteger(duration) || duration <= 0) {
           throw new Error('예약 길이(duration)가 올바르지 않습니다.');
         }
-        await api('/api/v1/bookings', {
-          method: 'POST',
-          auth: true,
-          body: {
-            teacher_user_id: teacherId,
-            start_at: startAtIso,
-            duration_min: duration,
-          },
-        });
+        if (state.user?.role === 'STUDENT') {
+          await api('/api/v1/bookings', {
+            method: 'POST',
+            auth: true,
+            body: {
+              teacher_user_id: teacherId,
+              start_at: startAtIso,
+              duration_min: duration,
+            },
+          });
+          return;
+        }
+        if (isGuestStudentMode()) {
+          const credential = readGuestCredentialInput({ requireStudentName: true });
+          applyGuestCredentialSnapshot(credential);
+          const result = await api('/api/v1/public/bookings', {
+            method: 'POST',
+            body: {
+              teacher_user_id: teacherId,
+              start_at: startAtIso,
+              duration_min: duration,
+              student_name: credential.student_name,
+              phone: credential.phone,
+              pin: credential.pin,
+            },
+          });
+          const manageUrl = result?.public_access?.manage_url;
+          if (manageUrl) {
+            pushLog('비회원 예약 링크', { manage_url: manageUrl, expires_at: result?.public_access?.expires_at });
+          }
+          return;
+        }
+        throw new Error('예약 권한이 없습니다. 학생 로그인 또는 비회원 정보 입력이 필요합니다.');
       }
 
       async function cancelBooking(bookingId) {
-        await api(`/api/v1/bookings/${bookingId}/cancel`, {
-          method: 'POST',
-          auth: true,
-        });
+        if (state.user?.role === 'STUDENT') {
+          await api(`/api/v1/bookings/${bookingId}/cancel`, {
+            method: 'POST',
+            auth: true,
+          });
+          return;
+        }
+        if (isGuestStudentMode()) {
+          const credential = readGuestCredentialInput({ requireStudentName: false });
+          applyGuestCredentialSnapshot(credential);
+          const reasonInput = window.prompt('취소 사유를 입력해 주세요. (필수)');
+          if (reasonInput === null) return;
+          const reason = String(reasonInput || '').trim();
+          if (!reason) {
+            throw new Error('취소 사유는 필수입니다.');
+          }
+          await api(`/api/v1/public/bookings/${bookingId}/cancel`, {
+            method: 'POST',
+            body: {
+              phone: credential.phone,
+              pin: credential.pin,
+              reason,
+            },
+          });
+          return;
+        }
+        throw new Error('취소 권한이 없습니다.');
       }
 
       async function approveBooking(bookingId) {
         await api(`/api/v1/teachers/me/bookings/${bookingId}/approve`, {
           method: 'POST',
           auth: true,
+        });
+      }
+
+      async function completeBooking(bookingId, { teacherPrivateComment, studentComment } = {}) {
+        const body = {};
+        if (teacherPrivateComment !== undefined) {
+          body.teacher_private_comment = teacherPrivateComment;
+        }
+        if (studentComment !== undefined) {
+          body.student_comment = studentComment;
+        }
+        await api(`/api/v1/teachers/me/bookings/${bookingId}/complete`, {
+          method: 'POST',
+          auth: true,
+          body,
+        });
+      }
+
+      async function resetGuestPin(guestStudentId, pin) {
+        await api(`/api/v1/teachers/me/guest-students/${guestStudentId}/reset-pin`, {
+          method: 'POST',
+          auth: true,
+          body: { pin },
         });
       }
 
@@ -2789,16 +2977,26 @@
       function renderTeacherBookings(items) {
         teacherBookingsBody.innerHTML = '';
         if (!items.length) {
-          teacherBookingsBody.innerHTML = '<tr><td colspan="6">데이터 없음</td></tr>';
+          teacherBookingsBody.innerHTML = '<tr><td colspan="8">데이터 없음</td></tr>';
           return;
         }
 
         for (const row of items) {
           const canApprove = row.status === 'PENDING';
           const canCancel = ['PENDING', 'BOOKED'].includes(row.status);
+          const canComplete = ['PENDING', 'BOOKED'].includes(row.status);
+          const canEditComment = row.status === 'COMPLETED';
+          const canResetGuestPin = Boolean(row.is_guest_student && row.guest_student_id);
           const actions = [
             canApprove ? `<button type="button" data-approve-teacher-booking="${row.id}">승인</button>` : '',
             canCancel ? `<button type="button" data-cancel-teacher-booking="${row.id}">거절/취소</button>` : '',
+            canComplete ? `<button type="button" data-complete-teacher-booking="${row.id}">완료처리</button>` : '',
+            canEditComment
+              ? `<button type="button" data-comment-teacher-booking="${row.id}" data-comment-student-value="${escapeHtml(row.student_comment || '')}" data-comment-private-value="${escapeHtml(row.teacher_private_comment || '')}">코멘트</button>`
+              : '',
+            canResetGuestPin
+              ? `<button type="button" data-reset-guest-pin="${row.guest_student_id}" data-reset-guest-phone="${escapeHtml(row.guest_phone || '')}">PIN초기화</button>`
+              : '',
           ]
             .filter(Boolean)
             .join(' ');
@@ -2809,6 +3007,8 @@
             <td class="mono">${formatDateTime(row.start_at)}</td>
             <td class="mono">${formatDateTime(row.end_at)}</td>
             <td>${statusBadge(row.status)}</td>
+            <td>${escapeHtml(row.student_comment || '')}</td>
+            <td>${escapeHtml(row.teacher_private_comment || '')}</td>
             <td>${actions}</td>
           `;
           teacherBookingsBody.appendChild(tr);
@@ -2913,7 +3113,11 @@
           renderStudentMeta();
           renderStudentStats();
           renderTeacherStats();
-          window.location.href = '/index.html';
+          if (PAGE_MODE === 'STUDENT') {
+            window.location.href = '/student.html';
+          } else {
+            window.location.href = '/index.html';
+          }
         });
       });
 
@@ -2929,6 +3133,18 @@
       document.getElementById('teacherCreateCancelBtn').addEventListener('click', () => {
         closeTeacherCreateModal();
       });
+
+      function promptRequiredText(message, initialValue = '') {
+        let seed = initialValue;
+        while (true) {
+          const input = window.prompt(message, seed);
+          if (input === null) return null;
+          const value = String(input || '').trim();
+          if (value) return value;
+          window.alert('필수 입력 항목입니다.');
+          seed = '';
+        }
+      }
 
       teacherCreateModal.addEventListener('click', (event) => {
         if (event.target === teacherCreateModal) {
@@ -2965,8 +3181,19 @@
             body: { email: form.email, password: form.password },
           });
           setAuth(result.token, result.user);
-          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
-          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+          if (PAGE_MODE === 'TEACHER' && state.user?.role !== 'TEACHER') {
+            window.location.href = '/student.html';
+            return;
+          }
+          if (PAGE_MODE === 'STUDENT' && state.user?.role === 'TEACHER') {
+            window.location.href = '/teacher.html';
+            return;
+          }
+          if (state.user?.role === 'TEACHER') {
+            await loadTeacherDashboard();
+          } else {
+            await loadStudentDashboard();
+          }
         });
       });
 
@@ -2984,8 +3211,19 @@
             },
           });
           setAuth(result.token, result.user);
-          if (state.user?.role === 'TEACHER') await loadTeacherDashboard();
-          if (state.user?.role === 'STUDENT') await loadStudentDashboard();
+          if (PAGE_MODE === 'TEACHER' && state.user?.role !== 'TEACHER') {
+            window.location.href = '/student.html';
+            return;
+          }
+          if (PAGE_MODE === 'STUDENT' && state.user?.role === 'TEACHER') {
+            window.location.href = '/teacher.html';
+            return;
+          }
+          if (state.user?.role === 'TEACHER') {
+            await loadTeacherDashboard();
+          } else {
+            await loadStudentDashboard();
+          }
         });
       });
 
@@ -3102,7 +3340,47 @@
         runAction('내 예약 조회', loadMyBookings);
       });
 
+      guestLookupBtn?.addEventListener('click', () => {
+        runAction('비회원 예약 조회', async () => {
+          const credential = readGuestCredentialInput({ requireStudentName: false });
+          applyGuestCredentialSnapshot(credential);
+          await loadMyBookings();
+        });
+      });
+
+      guestTokenCancelBtn?.addEventListener('click', () => {
+        runAction('링크 예약 취소', async () => {
+          if (!state.publicManageBookingId || !state.publicManageToken) {
+            throw new Error('유효한 관리 링크 정보가 없습니다.');
+          }
+          const reason = promptRequiredText('취소 사유를 입력해 주세요. (필수)');
+          if (reason === null) return;
+          await api(`/api/v1/public/bookings/${state.publicManageBookingId}/cancel-by-token`, {
+            method: 'POST',
+            body: {
+              token: state.publicManageToken,
+              reason,
+            },
+          });
+          state.publicManageToken = '';
+          const url = new URL(window.location.href);
+          url.searchParams.delete('public_token');
+          window.history.replaceState({}, '', url.toString());
+          await loadSlotsForCurrentMonth();
+          await loadMyBookings();
+        });
+      });
+
       myBookingsBody.addEventListener('click', (e) => {
+        const manageUrl = e.target?.dataset?.copyMyManageLink;
+        if (manageUrl) {
+          runAction('비회원 관리 링크 복사', async () => {
+            await navigator.clipboard.writeText(manageUrl);
+            window.alert('관리 링크를 클립보드에 복사했습니다.');
+          });
+          return;
+        }
+
         const bookingId = e.target?.dataset?.cancelMyBooking;
         if (!bookingId) return;
         runAction('내 예약 취소', async () => {
@@ -3250,6 +3528,63 @@
           return;
         }
 
+        const completeId = e.target?.dataset?.completeTeacherBooking;
+        if (completeId) {
+          runAction('수업 완료 처리', async () => {
+            const studentComment = promptRequiredText('학생에게 전달할 코멘트를 입력해 주세요. (필수)');
+            if (studentComment === null) return;
+            const teacherPrivateComment = promptRequiredText('선생님 내부 메모를 입력해 주세요. (필수)');
+            if (teacherPrivateComment === null) return;
+            await completeBooking(completeId, {
+              teacherPrivateComment,
+              studentComment,
+            });
+            await loadTeacherBookings();
+            await loadSlotsForCurrentMonth();
+          });
+          return;
+        }
+
+        const commentId = e.target?.dataset?.commentTeacherBooking;
+        if (commentId) {
+          runAction('수업 코멘트 수정', async () => {
+            const currentStudent = String(e.target?.dataset?.commentStudentValue || '');
+            const currentPrivate = String(e.target?.dataset?.commentPrivateValue || '');
+            const studentComment = promptRequiredText(
+              '학생에게 전달할 코멘트를 입력해 주세요. (필수)',
+              currentStudent
+            );
+            if (studentComment === null) return;
+            const teacherPrivateComment = promptRequiredText(
+              '선생님 내부 메모를 입력해 주세요. (필수)',
+              currentPrivate
+            );
+            if (teacherPrivateComment === null) return;
+            await completeBooking(commentId, {
+              teacherPrivateComment,
+              studentComment,
+            });
+            await loadTeacherBookings();
+          });
+          return;
+        }
+
+        const guestId = e.target?.dataset?.resetGuestPin;
+        if (guestId) {
+          runAction('비회원 PIN 초기화', async () => {
+            const phone = String(e.target?.dataset?.resetGuestPhone || '');
+            const input = window.prompt(`${phone ? `${phone} ` : ''}비회원의 새 PIN 4자리를 입력하세요.`, '');
+            if (input === null) return;
+            const nextPin = String(input).trim();
+            if (!/^\d{4}$/.test(nextPin)) {
+              throw new Error('PIN은 4자리 숫자여야 합니다.');
+            }
+            await resetGuestPin(guestId, nextPin);
+            window.alert('PIN 초기화가 완료되었습니다.');
+          });
+          return;
+        }
+
         const bookingId = e.target?.dataset?.cancelTeacherBooking;
         if (!bookingId) return;
         runAction('선생님 예약 취소', async () => {
@@ -3290,34 +3625,48 @@
         renderStudentMeta();
         renderStudentStats();
         renderTeacherStats();
-        if (!state.token) {
+        if (PAGE_MODE === 'TEACHER' && !state.token) {
           window.location.href = '/index.html';
           return;
         }
 
         try {
-          await syncMe();
-          if (!state.user) {
-            window.location.href = '/index.html';
-            return;
-          }
-          if (PAGE_MODE === 'TEACHER' && state.user.role !== 'TEACHER') {
-            window.location.href = state.user.role === 'STUDENT' ? '/student.html' : '/index.html';
-            return;
-          }
-          if (PAGE_MODE === 'STUDENT' && state.user.role !== 'STUDENT') {
-            window.location.href = state.user.role === 'TEACHER' ? '/teacher.html' : '/index.html';
-            return;
-          }
-          if (PAGE_MODE === 'TEACHER') {
-            await loadTeacherDashboard();
+          if (state.token) {
+            await syncMe();
           } else {
-            await loadStudentDashboard();
+            setAuth('', null);
+          }
+
+          if (PAGE_MODE === 'TEACHER') {
+            if (!state.user || state.user.role !== 'TEACHER') {
+              window.location.href = '/index.html';
+              return;
+            }
+            await loadTeacherDashboard();
+            return;
+          }
+
+          if (PAGE_MODE === 'STUDENT' && state.user?.role === 'TEACHER') {
+            window.location.href = '/teacher.html';
+            return;
+          }
+
+          state.monthCursor = new Date();
+          await loadTeachers();
+          await loadSlotsForCurrentMonth();
+          if (state.user?.role === 'STUDENT') {
+            await loadMyBookings();
+          } else {
+            state.studentBookings = [];
+            renderMyBookings(state.studentBookings);
+            renderStudentStats();
           }
         } catch (err) {
           pushLog('세션 복원 FAILED', { message: getErrorMessage(err), payload: err?.payload });
           setAuth('', null);
-          window.location.href = '/index.html';
+          if (PAGE_MODE === 'TEACHER') {
+            window.location.href = '/index.html';
+          }
         }
       }
 
