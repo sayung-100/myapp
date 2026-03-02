@@ -620,6 +620,10 @@
         background: #fff8ec;
       }
 
+      .week-teacher-cell.has-exception {
+        background: #fff2f2;
+      }
+
       .week-teacher-window {
         width: 100%;
         height: 100%;
@@ -645,6 +649,18 @@
         font-weight: 700;
         color: #325e95;
         background: #e4efff;
+      }
+
+      .week-exception-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        font-size: 10px;
+        font-weight: 700;
+        color: #983c3c;
+        background: #ffdede;
       }
 
       .slot-list {
@@ -1206,8 +1222,15 @@
                       <option value="10">10분</option>
                     </select>
                   </label>
+                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px">
+                    생성 모드
+                    <select id="teacherCreateType" style="width: auto">
+                      <option value="availability" selected>수업 오픈</option>
+                      <option value="exception">불가 시간/휴무</option>
+                    </select>
+                  </label>
                   <button id="teacherDurationSaveBtn" class="primary" type="button">길이 저장</button>
-                  <span class="hint">빈 칸 드래그로 수업창을 만들 수 있습니다. 기본은 단일 생성입니다.</span>
+                  <span class="hint">빈 칸 드래그로 생성합니다. `불가 시간/휴무` 모드에서는 예외 일정이 등록됩니다.</span>
                 </div>
                 <div class="right">
                   <button id="teacherPrevWeekBtn" type="button">이전 주</button>
@@ -1389,6 +1412,33 @@
         </form>
       </div>
     </div>
+    <div id="teacherExceptionModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="teacherExceptionTitle">
+      <div class="modal-card">
+        <div class="panel-title">
+          <h3 id="teacherExceptionTitle">불가 일정 등록</h3>
+          <p>수업이 불가능한 날짜/시간을 캘린더 기준으로 설정합니다.</p>
+        </div>
+        <form id="teacherExceptionQuickForm" class="grid">
+          <div class="grid two">
+            <label>날짜 <input name="date_local" type="date" required /></label>
+            <label>사유 <input name="reason" placeholder="휴무, 출장, 시험 등" /></label>
+          </div>
+          <label style="display: inline-flex; align-items: center; gap: 8px">
+            <input name="all_day" type="checkbox" style="width: auto" />
+            종일 불가(해당 날짜 전체 차단)
+          </label>
+          <div class="grid two">
+            <label>시작시간 <input name="start_time_local" type="time" step="300" /></label>
+            <label>종료시간 <input name="end_time_local" type="time" step="300" /></label>
+          </div>
+          <p class="hint">종일 불가를 선택하지 않으면 시간 범위를 입력해야 합니다.</p>
+          <div class="actions">
+            <button id="teacherExceptionCancelBtn" type="button">취소</button>
+            <button id="teacherExceptionSaveBtn" class="primary" type="submit">불가 일정 저장</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <script>
       const state = {
@@ -1419,6 +1469,8 @@
         teacherExceptions: [],
         teacherBookings: [],
         teacherCreateDraft: null,
+        teacherExceptionDraft: null,
+        teacherCreateType: 'availability',
       };
       const PAGE_MODE = 'STUDENT';
       const PAGE_SECTION = 'calendar';
@@ -1455,9 +1507,12 @@
       const teacherCalendarGrid = document.getElementById('teacherCalendarGrid');
       const teacherGridStep = document.getElementById('teacherGridStep');
       const teacherDurationSelect = document.getElementById('teacherDurationSelect');
+      const teacherCreateType = document.getElementById('teacherCreateType');
       const teacherDragHint = document.getElementById('teacherDragHint');
       const teacherCreateModal = document.getElementById('teacherCreateModal');
       const teacherCreateForm = document.getElementById('teacherCreateForm');
+      const teacherExceptionModal = document.getElementById('teacherExceptionModal');
+      const teacherExceptionQuickForm = document.getElementById('teacherExceptionQuickForm');
 
       const loginForm = document.getElementById('loginForm');
       const registerForm = document.getElementById('registerForm');
@@ -2116,6 +2171,15 @@
 
         const activeAvailability = (state.teacherAvailability || []).filter((row) => row.is_active);
         const availabilityById = new Map((state.teacherAvailability || []).map((row) => [Number(row.id), row]));
+        const exceptionsByDateKey = new Map();
+        for (const ex of state.teacherExceptions || []) {
+          const dateKey = String(ex.date_local || '').trim();
+          if (!dateKey) continue;
+          if (!exceptionsByDateKey.has(dateKey)) {
+            exceptionsByDateKey.set(dateKey, []);
+          }
+          exceptionsByDateKey.get(dateKey).push(ex);
+        }
         const bookingStatusByStartKey = new Map();
         for (const row of state.teacherBookings || []) {
           if (!['PENDING', 'BOOKED'].includes(row.status)) continue;
@@ -2132,8 +2196,12 @@
             const dateKey = toDateKeyFromDate(day);
             const weekday = day.getDay();
             const windows = activeAvailability.filter((row) => Number(row.weekday) === weekday);
+            const dayExceptions = exceptionsByDateKey.get(dateKey) || [];
             let windowAtStart = null;
             let hasWindow = false;
+            const isAllDayException = dayExceptions.some((ex) => !ex.start_time_local && !ex.end_time_local);
+            let hasException = isAllDayException;
+            let exceptionAtStart = null;
 
             for (const row of windows) {
               const startMin = minutesFromTimeLocal(row.start_time_local);
@@ -2143,10 +2211,27 @@
               if (minute === startMin) windowAtStart = row;
             }
 
+            if (!isAllDayException) {
+              for (const ex of dayExceptions) {
+                const exStart = minutesFromTimeLocal(ex.start_time_local);
+                const exEnd = minutesFromTimeLocal(ex.end_time_local);
+                if (exStart === null || exEnd === null) continue;
+                if (minute >= exStart && minute < exEnd) {
+                  hasException = true;
+                  if (minute === exStart) {
+                    exceptionAtStart = ex;
+                  }
+                }
+              }
+            } else if (minute === 0) {
+              exceptionAtStart = dayExceptions.find((ex) => !ex.start_time_local && !ex.end_time_local) || null;
+            }
+
             const bookingStatusAtStart = bookingStatusByStartKey.get(`${dateKey}|${minute}`) || null;
             const isBookedStart = Boolean(bookingStatusAtStart);
             const classes = ['week-cell', 'week-teacher-cell'];
             if (hasWindow) classes.push('has-window');
+            if (hasException) classes.push('has-exception');
             if (dateKey < todayKey || (dateKey === todayKey && minute < nowMinutes)) classes.push('past');
             if (
               dragPreview &&
@@ -2166,16 +2251,20 @@
               classes.push('drag-anchor');
             }
 
-            let content = `<button type="button" class="week-create-btn" data-create-teacher-slot="${dateKey}|${minute}">+</button>`;
+            const createLabel = state.teacherCreateType === 'exception' ? '■' : '+';
+            let content = `<button type="button" class="week-create-btn" data-create-teacher-slot="${dateKey}|${minute}" title="${state.teacherCreateType === 'exception' ? '불가 일정 생성' : '수업 오픈'}">${createLabel}</button>`;
             if (isBookedStart) {
               content =
                 bookingStatusAtStart === 'PENDING'
                   ? '<span class="week-booked-chip">대기</span>'
                   : '<span class="week-booked-chip">예약</span>';
+            } else if (exceptionAtStart) {
+              const exReason = escapeHtml((exceptionAtStart.reason || '').trim() || '불가');
+              content = `<span class="week-exception-chip" title="${exReason}">불가</span>`;
             } else if (windowAtStart) {
               const title = escapeHtml((windowAtStart.lesson_title || '').trim() || '오픈');
               content = `<button type="button" class="week-teacher-window" data-fill-availability-id="${windowAtStart.id}" data-drag-availability-id="${windowAtStart.id}" title="${title}">${title}</button>`;
-            } else if (hasWindow) {
+            } else if (hasWindow || hasException) {
               content = '';
             }
 
@@ -2234,7 +2323,11 @@
           const endTime = timeLabelFromMinutes(preview.endMinuteExclusive);
 
           if (preview.mode === 'create') {
-            openTeacherCreateModal(preview);
+            if (state.teacherCreateType === 'exception') {
+              openTeacherExceptionModal(preview);
+            } else {
+              openTeacherCreateModal(preview);
+            }
             return;
           }
 
@@ -2414,7 +2507,84 @@
       function closeTeacherCreateModal() {
         teacherCreateModal.classList.add('hidden');
         state.teacherCreateDraft = null;
-        document.body.style.overflow = '';
+        if (teacherExceptionModal.classList.contains('hidden')) {
+          document.body.style.overflow = '';
+        }
+      }
+
+      function toggleExceptionTimeInputs() {
+        const allDay = Boolean(teacherExceptionQuickForm.elements.all_day.checked);
+        teacherExceptionQuickForm.elements.start_time_local.disabled = allDay;
+        teacherExceptionQuickForm.elements.end_time_local.disabled = allDay;
+        if (allDay) {
+          teacherExceptionQuickForm.elements.start_time_local.value = '';
+          teacherExceptionQuickForm.elements.end_time_local.value = '';
+        }
+      }
+
+      function openTeacherExceptionModal(preview) {
+        state.teacherExceptionDraft = preview;
+        teacherExceptionQuickForm.reset();
+        teacherExceptionQuickForm.elements.date_local.value = preview.dateKey;
+        teacherExceptionQuickForm.elements.start_time_local.value = timeLabelFromMinutes(preview.startMinute);
+        teacherExceptionQuickForm.elements.end_time_local.value = timeLabelFromMinutes(preview.endMinuteExclusive);
+        teacherExceptionQuickForm.elements.reason.value = '수업 불가';
+        teacherExceptionQuickForm.elements.all_day.checked = false;
+        toggleExceptionTimeInputs();
+        teacherExceptionModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeTeacherExceptionModal() {
+        teacherExceptionModal.classList.add('hidden');
+        state.teacherExceptionDraft = null;
+        if (teacherCreateModal.classList.contains('hidden')) {
+          document.body.style.overflow = '';
+        }
+      }
+
+      async function createTeacherExceptionFromModal() {
+        const dateLocal = String(teacherExceptionQuickForm.elements.date_local.value || '').trim();
+        const reason = String(teacherExceptionQuickForm.elements.reason.value || '').trim();
+        const allDay = Boolean(teacherExceptionQuickForm.elements.all_day.checked);
+        const startTime = String(teacherExceptionQuickForm.elements.start_time_local.value || '').trim();
+        const endTime = String(teacherExceptionQuickForm.elements.end_time_local.value || '').trim();
+        if (!dateLocal) {
+          throw new Error('날짜를 선택해 주세요.');
+        }
+
+        const body = {
+          date_local: dateLocal,
+          reason: reason || '수업 불가',
+        };
+
+        if (!allDay) {
+          const startMinute = minutesFromTimeLocal(startTime);
+          const endMinute = minutesFromTimeLocal(endTime);
+          if (startMinute === null || endMinute === null || startMinute >= endMinute) {
+            throw new Error('불가 시간의 시작/종료를 올바르게 입력해 주세요.');
+          }
+          body.start_time_local = startTime;
+          body.end_time_local = endTime;
+        }
+
+        await api('/api/v1/teachers/me/exceptions', {
+          method: 'POST',
+          auth: true,
+          body,
+        });
+
+        pushLog('불가 일정 생성', {
+          date_local: dateLocal,
+          all_day: allDay,
+          start_time_local: body.start_time_local || null,
+          end_time_local: body.end_time_local || null,
+          reason: body.reason,
+        });
+
+        await loadTeacherExceptions();
+        await loadSlotsForCurrentMonth();
+        closeTeacherExceptionModal();
       }
 
       async function createTeacherAvailabilityFromDraft() {
@@ -2589,6 +2759,7 @@
         state.teacherExceptions = result.items || [];
         renderExceptions(state.teacherExceptions);
         renderTeacherStats();
+        renderTeacherCalendar();
       }
 
       async function loadTeacherBookings() {
@@ -2655,6 +2826,7 @@
           daySlotsList.innerHTML = '';
           teacherDragHint.classList.add('hidden');
           closeTeacherCreateModal();
+          closeTeacherExceptionModal();
           renderStudentMeta();
           renderStudentStats();
           renderTeacherStats();
@@ -2664,6 +2836,11 @@
 
       document.getElementById('topLogoutBtn').addEventListener('click', () => {
         document.getElementById('logoutBtn').click();
+      });
+
+      teacherCreateType.addEventListener('change', () => {
+        state.teacherCreateType = teacherCreateType.value === 'exception' ? 'exception' : 'availability';
+        renderTeacherCalendar();
       });
 
       document.getElementById('teacherCreateCancelBtn').addEventListener('click', () => {
@@ -2679,6 +2856,25 @@
       teacherCreateForm.addEventListener('submit', (event) => {
         event.preventDefault();
         runAction('수업 일정 저장', createTeacherAvailabilityFromDraft);
+      });
+
+      document.getElementById('teacherExceptionCancelBtn').addEventListener('click', () => {
+        closeTeacherExceptionModal();
+      });
+
+      teacherExceptionModal.addEventListener('click', (event) => {
+        if (event.target === teacherExceptionModal) {
+          closeTeacherExceptionModal();
+        }
+      });
+
+      teacherExceptionQuickForm.elements.all_day.addEventListener('change', () => {
+        toggleExceptionTimeInputs();
+      });
+
+      teacherExceptionQuickForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        runAction('불가 일정 저장', createTeacherExceptionFromModal);
       });
 
       loginForm.addEventListener('submit', (e) => {
@@ -2791,6 +2987,7 @@
         runAction('선생님 캘린더 새로고침', async () => {
           await loadTeacherProfile();
           await loadTeacherAvailability();
+          await loadTeacherExceptions();
           await loadTeacherBookings();
         });
       });
@@ -2981,14 +3178,19 @@
       });
 
       window.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !teacherCreateModal.classList.contains('hidden')) {
+        if (event.key !== 'Escape') return;
+        if (!teacherCreateModal.classList.contains('hidden')) {
           closeTeacherCreateModal();
+        }
+        if (!teacherExceptionModal.classList.contains('hidden')) {
+          closeTeacherExceptionModal();
         }
       });
 
       async function bootstrap() {
         studentGridStep.value = '15';
         teacherGridStep.value = '15';
+        teacherCreateType.value = state.teacherCreateType;
         state.studentGridStepMin = 15;
         state.teacherGridStepMin = 15;
         renderAuth();

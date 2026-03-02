@@ -41,6 +41,16 @@ docker compose up --build -d
 - 백엔드 헬스체크: `http://localhost:4000/health`
 - 프론트 프록시 헬스체크: `http://localhost:8080/api/health`
 
+## 선생님 불가 일정(휴무/차단) 설정 방법
+- 캘린더 방식(권장)
+  1. `http://localhost:8080/teacher-calendar.html` 접속
+  2. 상단 `생성 모드`를 `불가 시간/휴무`로 변경
+  3. 캘린더에서 날짜/시간을 15분 단위로 드래그
+  4. 뜨는 모달에서 날짜, 시간(또는 `종일 차단`), 사유를 입력 후 저장
+  5. 저장 즉시 선생님 캘린더에 `불가`로 표시되고 학생 슬롯에서 제외
+- 기존 폼 방식
+  - `http://localhost:8080/teacher-manage.html`의 `예외(Exceptions)` 섹션에서 날짜/시간/사유를 직접 등록/삭제
+
 ## 4) 마이그레이션 / 시드
 ```bash
 docker compose run --rm backend npm run migrate
