@@ -51,13 +51,14 @@ SLOTS_JSON=$(curl -sS -G "$BASE_URL/api/v1/teachers/$TEACHER_ID/slots" \
   --data-urlencode "from=$FROM" \
   --data-urlencode "to=$TO")
 SLOT_START=$(printf '%s' "$SLOTS_JSON" | extract_json_path "(j.items||[]).find(x=>x.is_available)?.start_at")
+SLOT_DURATION=$(printf '%s' "$SLOTS_JSON" | extract_json_path "(j.items||[]).find(x=>x.is_available)?.duration_min ?? j.duration_min")
 echo "[OK] slot_start=$SLOT_START"
 
 echo "[6/8] create booking"
 BOOKING_RES=$(curl -sS -w $'\n%{http_code}' -X POST "$BASE_URL/api/v1/bookings" \
   -H "Authorization: Bearer $STUDENT_TOKEN" \
   -H 'Content-Type: application/json' \
-  -d "{\"teacher_user_id\":$TEACHER_ID,\"start_at\":\"$SLOT_START\"}")
+  -d "{\"teacher_user_id\":$TEACHER_ID,\"start_at\":\"$SLOT_START\",\"duration_min\":$SLOT_DURATION}")
 BOOKING_BODY=${BOOKING_RES%$'\n'*}
 BOOKING_CODE=${BOOKING_RES##*$'\n'}
 if [[ "$BOOKING_CODE" != "201" ]]; then

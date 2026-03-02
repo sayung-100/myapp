@@ -87,8 +87,8 @@ async function seedBookableScenario({
   cancelCutoffHours = 6,
   bookingWindowDays = 30,
   slotStart = buildSlotStartUtc(),
-  availabilityStartTimeLocal = '09:00:00',
-  availabilityEndTimeLocal = '13:00:00',
+  availabilityStartTimeLocal,
+  availabilityEndTimeLocal,
 } = {}) {
   await pool.query(`
     TRUNCATE TABLE
@@ -125,10 +125,14 @@ async function seedBookableScenario({
       INSERT INTO teacher_profiles (
         teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days
       )
-      VALUES ($1, 60, 'Asia/Seoul', $2, $3)
+      VALUES ($1, 60, 'UTC', $2, $3)
     `,
     [teacherId, cancelCutoffHours, bookingWindowDays]
   );
+  const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
+  const startTimeLocal = availabilityStartTimeLocal || formatLocalTimeUtc(slotStart);
+  const endTimeLocal = availabilityEndTimeLocal || formatLocalTimeUtc(slotEnd);
+
   await pool.query(
     `
       INSERT INTO weekly_availabilities (
@@ -136,7 +140,7 @@ async function seedBookableScenario({
       )
       VALUES ($1, $2, $3::time, $4::time, TRUE)
     `,
-    [teacherId, slotStart.getUTCDay(), availabilityStartTimeLocal, availabilityEndTimeLocal]
+    [teacherId, slotStart.getUTCDay(), startTimeLocal, endTimeLocal]
   );
 
   return {
@@ -167,7 +171,7 @@ test('student booking is pending, marks slot unavailable, and duplicate booking 
   const studentToken = await login('student@example.com');
 
   const slotsBefore = await requestJson(
-    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}`,
+    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}&step_min=60`,
     { token: studentToken }
   );
   assert.equal(slotsBefore.status, 200);
@@ -199,7 +203,7 @@ test('student booking is pending, marks slot unavailable, and duplicate booking 
   assert.equal(duplicate.body.error, 'slot_already_booked');
 
   const slotsAfter = await requestJson(
-    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}`,
+    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}&step_min=60`,
     { token: studentToken }
   );
   assert.equal(slotsAfter.status, 200);
@@ -303,8 +307,6 @@ test('booking accepts near booking window limit and rejects over limit', async (
   const scenario = await seedBookableScenario({
     bookingWindowDays: windowDays,
     slotStart: within,
-    availabilityStartTimeLocal: '00:00:00',
-    availabilityEndTimeLocal: '23:59:59',
   });
   const studentToken = await login('student@example.com');
 
@@ -346,7 +348,7 @@ test('all-day exception removes matching day slots and blocks booking', async ()
   assert.equal(createException.status, 201);
 
   const slots = await requestJson(
-    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}`,
+    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}&step_min=60`,
     { token: studentToken }
   );
   assert.equal(slots.status, 200);
@@ -369,6 +371,17 @@ test('partial exception blocks only overlapping slot', async () => {
   const studentToken = await login('student@example.com');
   const teacherToken = await login('teacher@example.com');
   const nextSlot = new Date(scenario.slotStart.getTime() + 60 * 60 * 1000);
+  const nextSlotEnd = new Date(nextSlot.getTime() + 60 * 60 * 1000);
+
+  await pool.query(
+    `
+      INSERT INTO weekly_availabilities (
+        teacher_user_id, weekday, start_time_local, end_time_local, is_active
+      )
+      VALUES ($1, $2, $3::time, $4::time, TRUE)
+    `,
+    [scenario.teacherId, scenario.slotStart.getUTCDay(), formatLocalTimeUtc(nextSlot), formatLocalTimeUtc(nextSlotEnd)]
+  );
 
   const createException = await requestJson('/api/v1/teachers/me/exceptions', {
     method: 'POST',
@@ -383,7 +396,7 @@ test('partial exception blocks only overlapping slot', async () => {
   assert.equal(createException.status, 201);
 
   const slots = await requestJson(
-    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}`,
+    `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}&step_min=60`,
     { token: studentToken }
   );
   assert.equal(slots.status, 200);
