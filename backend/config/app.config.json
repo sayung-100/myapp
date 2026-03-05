@@ -17,6 +17,7 @@
     }
   },
   "booking": {
+    "studentCancelDayBeforeHourLocal": 21,
     "comments": {
       "requireTeacherPrivateOnComplete": true,
       "requireStudentCommentOnComplete": true

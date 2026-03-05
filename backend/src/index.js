@@ -49,6 +49,12 @@ const GUEST_CANCEL_REASON_REQUIRED = appConfig?.guest?.cancelReasonRequired !== 
 const REQUIRE_TEACHER_PRIVATE_COMMENT_ON_COMPLETE =
   appConfig?.booking?.comments?.requireTeacherPrivateOnComplete !== false;
 const REQUIRE_STUDENT_COMMENT_ON_COMPLETE = appConfig?.booking?.comments?.requireStudentCommentOnComplete !== false;
+const DEFAULT_STUDENT_CANCEL_DAY_BEFORE_HOUR =
+  Number.isInteger(Number(appConfig?.booking?.studentCancelDayBeforeHourLocal)) &&
+  Number(appConfig.booking.studentCancelDayBeforeHourLocal) >= 0 &&
+  Number(appConfig.booking.studentCancelDayBeforeHourLocal) <= 23
+    ? Number(appConfig.booking.studentCancelDayBeforeHourLocal)
+    : 21;
 const AUTO_COMPLETE_POLL_MS =
   parsePositiveInt(process.env.AUTO_COMPLETE_POLL_MS) ||
   (Number.isInteger(Number(appConfig?.schedulers?.autoCompletePollMs)) && Number(appConfig.schedulers.autoCompletePollMs) > 0
@@ -81,6 +87,34 @@ function parseLocalTime(value) {
     return `${text}:00`;
   }
   return text;
+}
+
+function localTimeToMinutes(timeText) {
+  const parsed = parseLocalTime(timeText);
+  if (!parsed) return null;
+  const [hoursText, minutesText] = parsed.split(':');
+  const hours = Number.parseInt(hoursText, 10);
+  const minutes = Number.parseInt(minutesText, 10);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) {
+    return null;
+  }
+  return hours * 60 + minutes;
+}
+
+function isAlignedToHalfHour(timeText) {
+  const totalMinutes = localTimeToMinutes(timeText);
+  if (!Number.isInteger(totalMinutes)) {
+    return false;
+  }
+  return totalMinutes % 30 === 0;
+}
+
+function isCancelDeadlinePassed(deadlineAt) {
+  const parsed = new Date(deadlineAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return false;
+  }
+  return Date.now() > parsed.getTime();
 }
 
 function parseLocalDate(value) {
@@ -291,7 +325,14 @@ async function hasExceptionConflict(teacherUserId, dateLocal, startTimeLocal, en
 async function getTeacherProfileById(teacherUserId) {
   const result = await query(
     `
-      SELECT teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days
+      SELECT
+        teacher_user_id,
+        lesson_duration_min,
+        timezone,
+        cancel_cutoff_hours,
+        booking_window_days,
+        student_cancel_day_before_hour,
+        student_notice
       FROM teacher_profiles
       WHERE teacher_user_id = $1
       LIMIT 1
@@ -466,10 +507,20 @@ async function getGuestBookingByToken(bookingId, rawToken) {
         b.status,
         b.completed_at,
         b.teacher_private_comment,
-        b.student_comment,
+        COALESCE(b.student_comment, b.teacher_comment) AS student_comment,
         b.canceled_at,
         b.cancel_reason,
-        tp.cancel_cutoff_hours
+        tp.timezone,
+        tp.student_cancel_day_before_hour,
+        make_timestamptz(
+          extract(year FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+          extract(month FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+          extract(day FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+          tp.student_cancel_day_before_hour,
+          0,
+          0,
+          tp.timezone
+        ) AS student_cancel_deadline_at
       FROM bookings b
       JOIN teacher_profiles tp ON tp.teacher_user_id = b.teacher_user_id
       WHERE b.id = $1
@@ -643,8 +694,13 @@ async function getBookableSlotAt(teacherUserId, startAtIso, timezone) {
           FROM bookings b
           WHERE b.teacher_user_id = $1
             AND b.start_at = c.start_at
-            AND b.status = 'COMPLETED'
-            AND (b.start_at + make_interval(mins => b.duration_min)) > NOW()
+            AND (
+              b.status IN ('PENDING', 'BOOKED')
+              OR (
+                b.status = 'COMPLETED'
+                AND (b.start_at + make_interval(mins => b.duration_min)) > NOW()
+              )
+            )
         )
         AND NOT EXISTS (
           SELECT 1
@@ -726,11 +782,11 @@ app.post('/api/v1/auth/register', async (req, res) => {
     if (role === 'TEACHER') {
       await query(
         `
-          INSERT INTO teacher_profiles (teacher_user_id)
-          VALUES ($1)
+          INSERT INTO teacher_profiles (teacher_user_id, student_cancel_day_before_hour)
+          VALUES ($1, $2)
           ON CONFLICT (teacher_user_id) DO NOTHING
         `,
-        [user.id]
+        [user.id, DEFAULT_STUDENT_CANCEL_DAY_BEFORE_HOUR]
       );
     }
 
@@ -845,7 +901,15 @@ app.get('/api/v1/teachers/me/profile', requireAuth, requireTeacher, async (req, 
   try {
     const result = await query(
       `
-        SELECT teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days, updated_at
+        SELECT
+          teacher_user_id,
+          lesson_duration_min,
+          timezone,
+          cancel_cutoff_hours,
+          booking_window_days,
+          student_cancel_day_before_hour,
+          student_notice,
+          updated_at
         FROM teacher_profiles
         WHERE teacher_user_id = $1
         LIMIT 1
@@ -870,10 +934,20 @@ app.patch('/api/v1/teachers/me/profile', requireAuth, requireTeacher, async (req
     const hasCancelCutoff = req.body?.cancel_cutoff_hours !== undefined;
     const hasBookingWindow = req.body?.booking_window_days !== undefined;
     const hasTimezone = req.body?.timezone !== undefined;
+    const hasStudentCancelDeadline = req.body?.student_cancel_day_before_hour !== undefined;
+    const hasStudentNotice = req.body?.student_notice !== undefined;
 
-    if (!hasLessonDuration && !hasCancelCutoff && !hasBookingWindow && !hasTimezone) {
+    if (
+      !hasLessonDuration &&
+      !hasCancelCutoff &&
+      !hasBookingWindow &&
+      !hasTimezone &&
+      !hasStudentCancelDeadline &&
+      !hasStudentNotice
+    ) {
       return res.status(400).json({
-        error: 'at least one of lesson_duration_min, cancel_cutoff_hours, booking_window_days, timezone is required',
+        error:
+          'at least one of lesson_duration_min, cancel_cutoff_hours, booking_window_days, timezone, student_cancel_day_before_hour, student_notice is required',
       });
     }
 
@@ -909,6 +983,22 @@ app.patch('/api/v1/teachers/me/profile', requireAuth, requireTeacher, async (req
       }
     }
 
+    let studentCancelDayBeforeHour = null;
+    if (hasStudentCancelDeadline) {
+      studentCancelDayBeforeHour = parseNonNegativeInt(req.body.student_cancel_day_before_hour);
+      if (studentCancelDayBeforeHour === null || studentCancelDayBeforeHour > 23) {
+        return res.status(400).json({ error: 'student_cancel_day_before_hour must be 0~23' });
+      }
+    }
+
+    let studentNotice = null;
+    if (hasStudentNotice) {
+      studentNotice = String(req.body.student_notice || '').trim() || null;
+      if (studentNotice && studentNotice.length > 4000) {
+        return res.status(400).json({ error: 'student_notice must be 4000 characters or fewer' });
+      }
+    }
+
     const updated = await query(
       `
         UPDATE teacher_profiles
@@ -916,11 +1006,33 @@ app.patch('/api/v1/teachers/me/profile', requireAuth, requireTeacher, async (req
             cancel_cutoff_hours = COALESCE($3::int, cancel_cutoff_hours),
             booking_window_days = COALESCE($4::int, booking_window_days),
             timezone = COALESCE($5::text, timezone),
+            student_cancel_day_before_hour = COALESCE($6::int, student_cancel_day_before_hour),
+            student_notice = CASE
+              WHEN $7::boolean THEN $8::text
+              ELSE student_notice
+            END,
             updated_at = NOW()
         WHERE teacher_user_id = $1
-        RETURNING teacher_user_id, lesson_duration_min, timezone, cancel_cutoff_hours, booking_window_days, updated_at
+        RETURNING
+          teacher_user_id,
+          lesson_duration_min,
+          timezone,
+          cancel_cutoff_hours,
+          booking_window_days,
+          student_cancel_day_before_hour,
+          student_notice,
+          updated_at
       `,
-      [req.auth.userId, lessonDurationMin, cancelCutoffHours, bookingWindowDays, timezone]
+      [
+        req.auth.userId,
+        lessonDurationMin,
+        cancelCutoffHours,
+        bookingWindowDays,
+        timezone,
+        studentCancelDayBeforeHour,
+        hasStudentNotice,
+        studentNotice,
+      ]
     );
 
     if (updated.rowCount === 0) {
@@ -929,6 +1041,9 @@ app.patch('/api/v1/teachers/me/profile', requireAuth, requireTeacher, async (req
 
     return res.json({ item: updated.rows[0] });
   } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({ error: 'availability_duplicate' });
+    }
     if (err?.code === '23514' || err?.code === '22007' || err?.code === '22P02') {
       return res.status(400).json({ error: 'invalid_request' });
     }
@@ -955,6 +1070,9 @@ app.post('/api/v1/teachers/me/availability', requireAuth, requireTeacher, async 
     }
     if (startTimeLocal >= endTimeLocal) {
       return res.status(400).json({ error: 'start_time_local must be earlier than end_time_local' });
+    }
+    if (!isAlignedToHalfHour(startTimeLocal) || !isAlignedToHalfHour(endTimeLocal)) {
+      return res.status(400).json({ error: 'time_must_align_to_30_min' });
     }
     if (typeof isActive !== 'boolean') {
       return res.status(400).json({ error: 'is_active must be boolean' });
@@ -985,6 +1103,9 @@ app.post('/api/v1/teachers/me/availability', requireAuth, requireTeacher, async 
     );
     return res.status(201).json({ item: created.rows[0] });
   } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({ error: 'availability_duplicate' });
+    }
     if (err?.code === '23514' || err?.code === '22007' || err?.code === '22P02') {
       return res.status(400).json({ error: 'invalid_request' });
     }
@@ -1041,6 +1162,9 @@ app.patch('/api/v1/teachers/me/availability/:id', requireAuth, requireTeacher, a
     if (nextStartTimeLocal >= nextEndTimeLocal) {
       return res.status(400).json({ error: 'start_time_local must be earlier than end_time_local' });
     }
+    if (!isAlignedToHalfHour(nextStartTimeLocal) || !isAlignedToHalfHour(nextEndTimeLocal)) {
+      return res.status(400).json({ error: 'time_must_align_to_30_min' });
+    }
     if (typeof nextIsActive !== 'boolean') {
       return res.status(400).json({ error: 'is_active must be boolean' });
     }
@@ -1078,6 +1202,9 @@ app.patch('/api/v1/teachers/me/availability/:id', requireAuth, requireTeacher, a
     );
     return res.json({ item: updated.rows[0] });
   } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({ error: 'one_time_availability_duplicate' });
+    }
     if (err?.code === '23514' || err?.code === '22007' || err?.code === '22P02') {
       return res.status(400).json({ error: 'invalid_request' });
     }
@@ -1158,6 +1285,9 @@ app.post('/api/v1/teachers/me/one-time-availability', requireAuth, requireTeache
     if (startTimeLocal >= endTimeLocal) {
       return res.status(400).json({ error: 'start_time_local must be earlier than end_time_local' });
     }
+    if (!isAlignedToHalfHour(startTimeLocal) || !isAlignedToHalfHour(endTimeLocal)) {
+      return res.status(400).json({ error: 'time_must_align_to_30_min' });
+    }
     if (typeof isActive !== 'boolean') {
       return res.status(400).json({ error: 'is_active must be boolean' });
     }
@@ -1190,6 +1320,9 @@ app.post('/api/v1/teachers/me/one-time-availability', requireAuth, requireTeache
     );
     return res.status(201).json({ item: created.rows[0] });
   } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({ error: 'exception_duplicate' });
+    }
     if (err?.code === '23514' || err?.code === '22007' || err?.code === '22P02') {
       return res.status(400).json({ error: 'invalid_request' });
     }
@@ -1267,6 +1400,9 @@ app.post('/api/v1/teachers/me/exceptions', requireAuth, requireTeacher, async (r
       if (startTimeLocal >= endTimeLocal) {
         return res.status(400).json({ error: 'start_time_local must be earlier than end_time_local' });
       }
+      if (!isAlignedToHalfHour(startTimeLocal) || !isAlignedToHalfHour(endTimeLocal)) {
+        return res.status(400).json({ error: 'time_must_align_to_30_min' });
+      }
     }
 
     if (await hasExceptionConflict(req.auth.userId, dateLocal, startTimeLocal, endTimeLocal)) {
@@ -1330,7 +1466,9 @@ app.get('/api/v1/teachers', optionalAuth, async (req, res) => {
           tp.lesson_duration_min,
           tp.timezone,
           tp.cancel_cutoff_hours,
-          tp.booking_window_days
+          tp.booking_window_days,
+          tp.student_cancel_day_before_hour,
+          tp.student_notice
         FROM users u
         JOIN teacher_profiles tp ON tp.teacher_user_id = u.id
         ORDER BY u.id ASC
@@ -1346,6 +1484,8 @@ app.get('/api/v1/teachers', optionalAuth, async (req, res) => {
         timezone: row.timezone,
         cancel_cutoff_hours: row.cancel_cutoff_hours,
         booking_window_days: row.booking_window_days,
+        student_cancel_day_before_hour: row.student_cancel_day_before_hour,
+        student_notice: row.student_notice,
       };
     });
     return res.json({ items });
@@ -1544,6 +1684,8 @@ app.get('/api/v1/teachers/:teacherId/slots', optionalAuth, async (req, res) => {
       timezone: profile.timezone,
       duration_min: profile.lesson_duration_min,
       default_duration_min: profile.lesson_duration_min,
+      student_cancel_day_before_hour: profile.student_cancel_day_before_hour,
+      student_notice: profile.student_notice,
       step_min: slotStepMin,
       items: slotsResult.rows,
     });
@@ -1830,7 +1972,7 @@ app.post('/api/v1/public/bookings/lookup', publicBookingLimiter, async (req, res
           b.status,
           b.completed_at,
           b.teacher_private_comment,
-          b.student_comment,
+          COALESCE(b.student_comment, b.teacher_comment) AS student_comment,
           b.canceled_at,
           b.cancel_reason,
           b.created_at,
@@ -1907,7 +2049,17 @@ app.post('/api/v1/public/bookings/:id/cancel', publicBookingLimiter, async (req,
           b.start_at,
           b.duration_min,
           b.status,
-          tp.cancel_cutoff_hours,
+          tp.timezone,
+          tp.student_cancel_day_before_hour,
+          make_timestamptz(
+            extract(year FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+            extract(month FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+            extract(day FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+            tp.student_cancel_day_before_hour,
+            0,
+            0,
+            tp.timezone
+          ) AS student_cancel_deadline_at,
           gs.phone_normalized,
           gs.pin_hash,
           gs.pin_failed_attempts,
@@ -1945,13 +2097,8 @@ app.post('/api/v1/public/bookings/:id/cancel', publicBookingLimiter, async (req,
       return res.status(409).json({ error: 'booking_not_active' });
     }
 
-    if (booking.status === 'BOOKED') {
-      const cutoffAt = new Date(
-        new Date(booking.start_at).getTime() - Number(booking.cancel_cutoff_hours) * 60 * 60 * 1000
-      );
-      if (new Date().getTime() > cutoffAt.getTime()) {
-        return res.status(422).json({ error: 'cancel_cutoff_passed' });
-      }
+    if (isCancelDeadlinePassed(booking.student_cancel_deadline_at)) {
+      return res.status(422).json({ error: 'cancel_cutoff_passed' });
     }
 
     const reason = String(req.body?.reason || '').trim();
@@ -2014,13 +2161,8 @@ app.post('/api/v1/public/bookings/:id/cancel-by-token', publicBookingLimiter, as
     if (!['PENDING', 'BOOKED'].includes(String(booking.status || ''))) {
       return res.status(409).json({ error: 'booking_not_active' });
     }
-    if (booking.status === 'BOOKED') {
-      const cutoffAt = new Date(
-        new Date(booking.start_at).getTime() - Number(booking.cancel_cutoff_hours) * 60 * 60 * 1000
-      );
-      if (new Date().getTime() > cutoffAt.getTime()) {
-        return res.status(422).json({ error: 'cancel_cutoff_passed' });
-      }
+    if (isCancelDeadlinePassed(booking.student_cancel_deadline_at)) {
+      return res.status(422).json({ error: 'cancel_cutoff_passed' });
     }
 
     const reason = String(req.body?.reason || '').trim();
@@ -2078,7 +2220,7 @@ app.get('/api/v1/bookings/me', requireAuth, requireStudent, async (req, res) => 
           b.duration_min,
           b.status,
           b.completed_at,
-          b.student_comment,
+          COALESCE(b.student_comment, b.teacher_comment) AS student_comment,
           b.canceled_at,
           b.cancel_reason,
           b.created_at,
@@ -2094,6 +2236,205 @@ app.get('/api/v1/bookings/me', requireAuth, requireStudent, async (req, res) => 
     );
     return res.json({ items: result.rows });
   } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'internal_server_error' });
+  }
+});
+
+app.post('/api/v1/teachers/me/bookings', requireAuth, requireTeacher, async (req, res) => {
+  try {
+    const startAtIso = parseDateTime(req.body?.start_at);
+    if (!startAtIso) {
+      return res.status(400).json({ error: 'start_at is required (ISO datetime)' });
+    }
+
+    const profile = await getTeacherProfileById(req.auth.userId);
+    if (!profile) {
+      return res.status(404).json({ error: 'teacher_not_found' });
+    }
+
+    const bookableSlot = await getBookableSlotAt(req.auth.userId, startAtIso, profile.timezone);
+    if (!bookableSlot) {
+      return res.status(422).json({ error: 'slot_not_available' });
+    }
+    const slotDurationMin = Number(bookableSlot.duration_min);
+    if (!Number.isInteger(slotDurationMin) || slotDurationMin <= 0) {
+      return res.status(500).json({ error: 'invalid_slot_duration' });
+    }
+
+    const studentUserIdInput = parsePositiveInt(req.body?.student_user_id);
+    const studentEmailInput = String(req.body?.student_email || '')
+      .trim()
+      .toLowerCase();
+    const guestStudentName = String(req.body?.student_name || '').trim();
+    const guestPhoneNormalized = parsePhoneNormalized(req.body?.phone);
+    const guestPin = parsePin4(req.body?.pin);
+
+    const hasStudentIdentity = Boolean(studentUserIdInput || studentEmailInput);
+    const hasGuestIdentity = Boolean(guestStudentName || guestPhoneNormalized || guestPin);
+    if (!hasStudentIdentity && !hasGuestIdentity) {
+      return res.status(400).json({
+        error: 'student_user_id or student_email is required (or provide student_name, phone, pin for guest)',
+      });
+    }
+    if (hasStudentIdentity && hasGuestIdentity) {
+      return res.status(400).json({ error: 'provide either student identity or guest identity, not both' });
+    }
+
+    if (hasStudentIdentity) {
+      const studentResult = await query(
+        `
+          SELECT id, email, name
+          FROM users
+          WHERE role = 'STUDENT'
+            AND (
+              ($1::bigint IS NOT NULL AND id = $1)
+              OR ($2::text <> '' AND email = $2)
+            )
+          ORDER BY id ASC
+          LIMIT 1
+        `,
+        [studentUserIdInput || null, studentEmailInput]
+      );
+      if (studentResult.rowCount === 0) {
+        return res.status(404).json({ error: 'student_not_found' });
+      }
+
+      const student = studentResult.rows[0];
+      const created = await query(
+        `
+          INSERT INTO bookings (
+            teacher_user_id, student_user_id, start_at, duration_min, status
+          )
+          VALUES ($1, $2, $3::timestamptz, $4, 'BOOKED')
+          RETURNING
+            id,
+            teacher_user_id,
+            student_user_id,
+            guest_student_id,
+            guest_student_name,
+            start_at,
+            (start_at + make_interval(mins => duration_min)) AS end_at,
+            duration_min,
+            status,
+            completed_at,
+            teacher_private_comment,
+            student_comment,
+            canceled_at,
+            cancel_reason,
+            created_at,
+            updated_at
+        `,
+        [req.auth.userId, student.id, startAtIso, slotDurationMin]
+      );
+
+      return res.status(201).json({
+        item: {
+          ...created.rows[0],
+          student_name: student.name,
+          student_email: student.email,
+          is_guest_student: false,
+        },
+      });
+    }
+
+    if (!guestStudentName) {
+      return res.status(400).json({ error: 'student_name is required' });
+    }
+    if (!guestPhoneNormalized) {
+      return res.status(400).json({ error: 'phone is invalid' });
+    }
+    if (!guestPin) {
+      return res.status(400).json({ error: 'pin must be 4 digits' });
+    }
+
+    const pinHash = await bcrypt.hash(guestPin, 10);
+    const existingGuest = await findGuestStudentByPhone(guestPhoneNormalized);
+    let guestStudentId = null;
+    if (existingGuest) {
+      const updatedGuest = await query(
+        `
+          UPDATE guest_students
+          SET pin_hash = $2,
+              contact_name = $3,
+              pin_failed_attempts = 0,
+              pin_locked_until = NULL,
+              updated_at = NOW()
+          WHERE id = $1
+          RETURNING id
+        `,
+        [existingGuest.id, pinHash, guestStudentName]
+      );
+      guestStudentId = updatedGuest.rows[0].id;
+    } else {
+      const createdGuest = await query(
+        `
+          INSERT INTO guest_students (phone_normalized, pin_hash, contact_name)
+          VALUES ($1, $2, $3)
+          RETURNING id
+        `,
+        [guestPhoneNormalized, pinHash, guestStudentName]
+      );
+      guestStudentId = createdGuest.rows[0].id;
+    }
+
+    const created = await query(
+      `
+        INSERT INTO bookings (
+          teacher_user_id,
+          student_user_id,
+          guest_student_id,
+          guest_student_name,
+          start_at,
+          duration_min,
+          status
+        )
+        VALUES ($1, NULL, $2, $3, $4::timestamptz, $5, 'BOOKED')
+        RETURNING
+          id,
+          teacher_user_id,
+          student_user_id,
+          guest_student_id,
+          guest_student_name,
+          start_at,
+          (start_at + make_interval(mins => duration_min)) AS end_at,
+          duration_min,
+          status,
+          completed_at,
+          teacher_private_comment,
+          student_comment,
+          canceled_at,
+          cancel_reason,
+          created_at,
+          updated_at
+      `,
+      [req.auth.userId, guestStudentId, guestStudentName, startAtIso, slotDurationMin]
+    );
+
+    const item = created.rows[0];
+    const issued = await issuePublicAccessTokenForBooking(item.id);
+    const manageUrl = buildPublicManageUrl(req, item.id, issued.token);
+
+    return res.status(201).json({
+      item: {
+        ...item,
+        student_name: item.guest_student_name || guestStudentName,
+        is_guest_student: true,
+        guest_phone: guestPhoneNormalized,
+      },
+      public_access: {
+        token: issued.token,
+        expires_at: issued.expiresAt,
+        manage_url: manageUrl,
+      },
+    });
+  } catch (err) {
+    if (err?.code === '23505') {
+      return res.status(409).json({ error: 'slot_already_booked' });
+    }
+    if (err?.code === '22007' || err?.code === '22P02') {
+      return res.status(400).json({ error: 'invalid_datetime' });
+    }
     console.error(err);
     return res.status(500).json({ error: 'internal_server_error' });
   }
@@ -2116,7 +2457,7 @@ app.get('/api/v1/teachers/me/bookings', requireAuth, requireTeacher, async (req,
           b.status,
           b.completed_at,
           b.teacher_private_comment,
-          b.student_comment,
+          COALESCE(b.student_comment, b.teacher_comment) AS student_comment,
           b.canceled_at,
           b.cancel_reason,
           b.created_at,
@@ -2208,6 +2549,27 @@ app.post('/api/v1/teachers/me/bookings/:id/complete', requireAuth, requireTeache
       return res.status(400).json({ error: 'invalid_booking_id' });
     }
 
+    const target = await query(
+      `
+        SELECT id, teacher_user_id, status
+        FROM bookings
+        WHERE id = $1
+        LIMIT 1
+      `,
+      [bookingId]
+    );
+    if (target.rowCount === 0) {
+      return res.status(404).json({ error: 'booking_not_found' });
+    }
+    const targetRow = target.rows[0];
+    if (Number(targetRow.teacher_user_id) !== Number(req.auth.userId)) {
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    const currentStatus = String(targetRow.status || '');
+    if (!['PENDING', 'BOOKED', 'COMPLETED'].includes(currentStatus)) {
+      return res.status(409).json({ error: 'booking_not_completable' });
+    }
+
     const hasTeacherPrivateCommentInput = req.body?.teacher_private_comment !== undefined;
     const hasStudentCommentInput = req.body?.student_comment !== undefined || req.body?.teacher_comment !== undefined;
     const teacherPrivateComment = hasTeacherPrivateCommentInput
@@ -2216,14 +2578,28 @@ app.post('/api/v1/teachers/me/bookings/:id/complete', requireAuth, requireTeache
     const studentComment = hasStudentCommentInput
       ? String((req.body?.student_comment ?? req.body?.teacher_comment) || '').trim()
       : null;
-    if (
-      REQUIRE_TEACHER_PRIVATE_COMMENT_ON_COMPLETE &&
-      (!hasTeacherPrivateCommentInput || !teacherPrivateComment)
-    ) {
-      return res.status(400).json({ error: 'teacher_private_comment is required' });
-    }
-    if (REQUIRE_STUDENT_COMMENT_ON_COMPLETE && (!hasStudentCommentInput || !studentComment)) {
-      return res.status(400).json({ error: 'student_comment is required' });
+
+    const isAlreadyCompleted = currentStatus === 'COMPLETED';
+    if (isAlreadyCompleted) {
+      if (!hasTeacherPrivateCommentInput && !hasStudentCommentInput) {
+        return res.status(400).json({ error: 'at_least_one_comment_is_required' });
+      }
+      if (hasTeacherPrivateCommentInput && !teacherPrivateComment) {
+        return res.status(400).json({ error: 'teacher_private_comment is required' });
+      }
+      if (hasStudentCommentInput && !studentComment) {
+        return res.status(400).json({ error: 'student_comment is required' });
+      }
+    } else {
+      if (
+        REQUIRE_TEACHER_PRIVATE_COMMENT_ON_COMPLETE &&
+        (!hasTeacherPrivateCommentInput || !teacherPrivateComment)
+      ) {
+        return res.status(400).json({ error: 'teacher_private_comment is required' });
+      }
+      if (REQUIRE_STUDENT_COMMENT_ON_COMPLETE && (!hasStudentCommentInput || !studentComment)) {
+        return res.status(400).json({ error: 'student_comment is required' });
+      }
     }
 
     const updated = await query(
@@ -2368,7 +2744,17 @@ app.post('/api/v1/bookings/:id/cancel', requireAuth, async (req, res) => {
           b.start_at,
           b.duration_min,
           b.status,
-          tp.cancel_cutoff_hours
+          tp.timezone,
+          tp.student_cancel_day_before_hour,
+          make_timestamptz(
+            extract(year FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+            extract(month FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+            extract(day FROM ((b.start_at AT TIME ZONE tp.timezone)::date - 1))::int,
+            tp.student_cancel_day_before_hour,
+            0,
+            0,
+            tp.timezone
+          ) AS student_cancel_deadline_at
         FROM bookings b
         JOIN teacher_profiles tp ON tp.teacher_user_id = b.teacher_user_id
         WHERE b.id = $1
@@ -2394,13 +2780,8 @@ app.post('/api/v1/bookings/:id/cancel', requireAuth, async (req, res) => {
       return res.status(409).json({ error: 'booking_not_active' });
     }
 
-    if (isStudentOwner && booking.status === 'BOOKED') {
-      const cutoffAt = new Date(
-        new Date(booking.start_at).getTime() - Number(booking.cancel_cutoff_hours) * 60 * 60 * 1000
-      );
-      if (new Date().getTime() > cutoffAt.getTime()) {
-        return res.status(422).json({ error: 'cancel_cutoff_passed' });
-      }
+    if (isStudentOwner && isCancelDeadlinePassed(booking.student_cancel_deadline_at)) {
+      return res.status(422).json({ error: 'cancel_cutoff_passed' });
     }
 
     const cancelStatus = isTeacherOwner ? 'CANCELED_BY_TEACHER' : 'CANCELED_BY_STUDENT';

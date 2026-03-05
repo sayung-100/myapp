@@ -505,6 +505,7 @@
         overflow: auto;
         max-height: 660px;
         background: #fff;
+        touch-action: pan-y;
       }
 
       .week-table {
@@ -583,6 +584,10 @@
         background: #f6fff9;
       }
 
+      .week-cell.has-booked {
+        background: #f3f7fc;
+      }
+
       .week-cell.holiday {
         background: #fff9f0;
       }
@@ -638,6 +643,10 @@
 
       .week-teacher-cell.has-exception {
         background: #fff2f2;
+      }
+
+      .week-teacher-cell.has-booking {
+        background: #eaf2ff;
       }
 
       .week-teacher-window {
@@ -742,6 +751,47 @@
         border-radius: 14px;
         background: #fff;
         padding: 10px;
+      }
+
+      .history-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .history-card {
+        border: 1px solid #d8e2ef;
+        border-radius: 12px;
+        background: #fbfdff;
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .history-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .history-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1a3d66;
+      }
+
+      .history-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 10px;
+        font-size: 12px;
+        color: #365371;
+      }
+
+      .history-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
       }
 
       .table-head {
@@ -955,9 +1005,44 @@
         .calendar-toolbar .left {
           width: 100%;
         }
+
+        .topbar .brand small {
+          display: none;
+        }
       }
 
       @media (max-width: 760px) {
+        .hero {
+          display: none;
+        }
+
+        .topbar {
+          position: static;
+          top: auto;
+          gap: 6px;
+          padding: 8px 10px;
+        }
+
+        .topbar .brand {
+          display: none;
+        }
+
+        .top-links {
+          width: 100%;
+          gap: 6px;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 2px;
+        }
+
+        .top-links a,
+        .top-links button {
+          flex: 0 0 auto;
+          white-space: nowrap;
+          padding: 6px 8px;
+          font-size: 12px;
+        }
+
         .grid.two {
           grid-template-columns: 1fr;
         }
@@ -991,6 +1076,10 @@
         .topbar,
         .panel {
           padding: 12px;
+        }
+
+        .history-meta {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -1160,6 +1249,10 @@
                 <span id="studentPolicyWindow" class="meta-chip">예약 가능 범위: -</span>
                 <span id="studentPolicyCutoff" class="meta-chip">취소 마감: -</span>
               </div>
+              <article class="subpanel" style="margin-top: 10px">
+                <h3>선생님 공지사항</h3>
+                <p id="studentTeacherNotice" class="hint" style="margin: 0">선생님을 선택하면 공지사항이 표시됩니다.</p>
+              </article>
 
               <div class="calendar-toolbar">
                 <div class="left">
@@ -1194,12 +1287,12 @@
               <div class="calendar-shell">
                 <article class="calendar-card">
                   <div id="calendarGrid" class="calendar-grid"></div>
-                  <p class="hint" style="margin-top: 9px">예약 가능한 칸을 클릭하면 즉시 수강신청됩니다.</p>
+                  <p class="hint" style="margin-top: 9px">예약 가능한 칸을 클릭하면 확인 후 수강신청됩니다.</p>
                 </article>
 
                 <article class="slot-card">
                   <h3 id="selectedDateLabel">선택한 날짜</h3>
-                  <p class="hint" style="margin-top: 4px; margin-bottom: 10px">시간을 선택하면 바로 예약 요청이 전송됩니다.</p>
+                  <p class="hint" style="margin-top: 4px; margin-bottom: 10px">시간을 선택하면 확인 후 예약 요청이 전송됩니다.</p>
                   <div id="daySlotSummary" class="slot-summary">총 0개 · 예약 가능 0개 · 마감 0개</div>
                   <div id="daySlotsList" class="slot-list"></div>
                 </article>
@@ -1221,7 +1314,7 @@
                         <th>start</th>
                         <th>end</th>
                         <th>status</th>
-                        <th>학생 코멘트</th>
+                        <th>선생님 코멘트</th>
                         <th>동작</th>
                       </tr>
                     </thead>
@@ -1246,6 +1339,7 @@
             <a href="/teacher-calendar.html" data-nav-section="calendar">캘린더</a>
             <a href="/teacher-manage.html" data-nav-section="manage">시간표/예외 관리</a>
             <a href="/teacher-bookings.html" data-nav-section="bookings">예약 승인/취소</a>
+            <a href="/teacher-completed.html" data-nav-section="completed">완료 수업 관리</a>
             <a href="/teacher.html" data-nav-section="all">통합 보기</a>
           </aside>
 
@@ -1275,8 +1369,8 @@
                       <option value="exception">불가 시간/휴무</option>
                     </select>
                   </label>
-                  <button id="teacherInviteBtn" class="primary" type="button">학생 초대 링크 복사</button>
-                  <span class="hint">수업은 드래그한 한 블럭 단위로 생성됩니다. `불가 시간/휴무` 모드도 동일하게 한 블럭만 등록됩니다.</span>
+                  <button id="teacherInviteBtn" class="primary" type="button">학생 예약 링크 복사</button>
+                  <span class="hint">수업은 드래그한 한 블럭 단위로 생성됩니다. 모바일은 캘린더 칸을 길게 누른 뒤 드래그하면 동일하게 등록됩니다. 캘린더 링크는 전체 시간표 공유용이며, 레슨별 링크는 아래 오픈 슬롯 목록에서 복사할 수 있습니다.</span>
                 </div>
                 <div class="right">
                   <button id="teacherPrevWeekBtn" type="button">이전 주</button>
@@ -1299,6 +1393,16 @@
               <article class="calendar-card" style="margin-bottom: 12px">
                 <div id="teacherCalendarGrid" class="calendar-grid"></div>
               </article>
+              <article class="table-card">
+                <div class="table-head">
+                  <h3>이번 주 오픈 슬롯 (링크/대리예약)</h3>
+                  <button id="teacherOpenSlotRefreshBtn" type="button">새로고침</button>
+                </div>
+                <p class="hint" style="margin: 0 0 8px 0">
+                  캘린더 링크는 전체 주간 시간표 공유용, 레슨 링크는 특정 시간 1건 공유용입니다.
+                </p>
+                <div id="teacherOpenSlotList" class="slot-list"></div>
+              </article>
             </section>
 
             <section id="teacherManageSection">
@@ -1317,8 +1421,8 @@
                       </label>
                     </div>
                     <div class="grid two">
-                      <label>시작시간 <input name="start_time_local" value="09:00" required /></label>
-                      <label>종료시간 <input name="end_time_local" value="12:00" required /></label>
+                      <label>시작시간 <input name="start_time_local" type="time" step="1800" value="09:00" required /></label>
+                      <label>종료시간 <input name="end_time_local" type="time" step="1800" value="12:00" required /></label>
                     </div>
                     <div class="grid two">
                       <label>수업명 <input name="lesson_title" placeholder="예: 회화 입문" /></label>
@@ -1355,12 +1459,12 @@
                   <form id="exceptionForm" class="grid">
                     <div class="grid three">
                       <label>ID(삭제) <input name="id" type="number" min="1" placeholder="예: 1" /></label>
-                      <label>날짜 <input name="date_local" value="2026-02-21" required /></label>
+                      <label>날짜 <input name="date_local" type="date" value="2026-02-21" required /></label>
                       <label>사유 <input name="reason" placeholder="휴무" /></label>
                     </div>
                     <div class="grid two">
-                      <label>시작시간 <input name="start_time_local" type="time" step="300" required /></label>
-                      <label>종료시간 <input name="end_time_local" type="time" step="300" required /></label>
+                      <label>시작시간 <input name="start_time_local" type="time" step="1800" required /></label>
+                      <label>종료시간 <input name="end_time_local" type="time" step="1800" required /></label>
                     </div>
                   </form>
                   <div class="actions">
@@ -1385,12 +1489,33 @@
                   </div>
                 </article>
               </div>
+              <article class="subpanel" style="margin-top: 12px">
+                <h3>선생님 설정</h3>
+                <form id="teacherProfileForm" class="grid">
+                  <div class="grid two">
+                    <label>학생 취소 마감시각(전날 기준 0~23시)
+                      <input name="student_cancel_day_before_hour" type="number" min="0" max="23" value="21" required />
+                    </label>
+                    <label>시간대 (IANA)
+                      <input name="timezone" value="Asia/Seoul" />
+                    </label>
+                  </div>
+                  <label>학생 공지사항
+                    <textarea name="student_notice" rows="3" placeholder="수업 준비물, 연락 안내, 취소 규정 등을 입력하세요."></textarea>
+                  </label>
+                </form>
+                <div class="actions">
+                  <button id="teacherProfileSaveBtn" class="primary" type="button">설정 저장</button>
+                  <button id="teacherProfileRefreshBtn" type="button">설정 다시불러오기</button>
+                </div>
+                <p class="hint">학생 취소는 수업 전날 설정 시각까지 허용됩니다. (예: 21시)</p>
+              </article>
             </section>
 
             <section id="teacherBookingsSection">
               <article class="table-card">
                 <div class="table-head">
-                  <h3>내 예약 목록</h3>
+                  <h3>진행 중 예약</h3>
                   <button id="teacherBookingsRefreshBtn" type="button">새로고침</button>
                 </div>
                 <div class="table-wrap">
@@ -1402,7 +1527,7 @@
                         <th>start</th>
                         <th>end</th>
                         <th>status</th>
-                        <th>학생 코멘트</th>
+                        <th>학생 전달 코멘트</th>
                         <th>선생님 메모</th>
                         <th>동작</th>
                       </tr>
@@ -1410,6 +1535,19 @@
                     <tbody id="teacherBookingsBody"></tbody>
                   </table>
                 </div>
+              </article>
+            </section>
+
+            <section id="teacherCompletedSection">
+              <article class="table-card">
+                <div class="table-head">
+                  <h3>완료 수업 이력</h3>
+                  <button id="teacherCompletedRefreshBtn" type="button">새로고침</button>
+                </div>
+                <p class="hint" style="margin: 0 0 10px 0">
+                  운영 관리는 리스트가 더 적합해 기본을 리스트형으로 제공했습니다. (시간/학생/코멘트 수정 동시 확인)
+                </p>
+                <div id="teacherCompletedList" class="history-list"></div>
               </article>
             </section>
           </div>
@@ -1439,8 +1577,8 @@
             </label>
           </div>
           <div class="grid two">
-            <label>시작시간 <input name="start_time_local" type="time" step="300" required /></label>
-            <label>종료시간 <input name="end_time_local" type="time" step="300" required /></label>
+            <label>시작시간 <input name="start_time_local" type="time" step="1800" required /></label>
+            <label>종료시간 <input name="end_time_local" type="time" step="1800" required /></label>
           </div>
           <div class="grid two">
             <label>수업명(표시용) <input name="class_title" placeholder="예: 회화 입문" /></label>
@@ -1471,8 +1609,8 @@
             <label>날짜 <input name="date_local" type="date" required /></label>
             <label>사유 <input name="reason" placeholder="휴무, 출장, 시험 등" /></label>
           </div><div class="grid two">
-            <label>시작시간 <input name="start_time_local" type="time" step="300" required /></label>
-            <label>종료시간 <input name="end_time_local" type="time" step="300" required /></label>
+            <label>시작시간 <input name="start_time_local" type="time" step="1800" required /></label>
+            <label>종료시간 <input name="end_time_local" type="time" step="1800" required /></label>
           </div>
           <p class="hint">예외도 캘린더 블럭 단위로 등록됩니다.</p>
           <div class="actions">
@@ -1484,6 +1622,9 @@
     </div>
 
     <script>
+      const URL_PARAMS = new URLSearchParams(window.location.search);
+      const invitedStartAtRaw = String(URL_PARAMS.get('start_at') || '').trim();
+      const invitedStartAtDate = invitedStartAtRaw ? new Date(invitedStartAtRaw) : null;
       const state = {
         token: localStorage.getItem('lb_token') || '',
         user: null,
@@ -1507,7 +1648,11 @@
         teacherProfile: null,
         teacherDrag: null,
         teacherDragEndedAt: 0,
-        invitedTeacherId: parseOptionalId(new URLSearchParams(window.location.search).get('teacher')) || null,
+        invitedTeacherId: parseOptionalId(URL_PARAMS.get('teacher')) || null,
+        invitedStartAtIso:
+          invitedStartAtDate && !Number.isNaN(invitedStartAtDate.getTime())
+            ? invitedStartAtDate.toISOString()
+            : '',
         holidaysByDate: {},
         loadedHolidayYears: {},
         studentBookings: [],
@@ -1515,14 +1660,28 @@
         teacherOneTimeAvailability: [],
         teacherExceptions: [],
         teacherBookings: [],
+        teacherActiveBookings: [],
+        teacherCompletedBookings: [],
         teacherCreateDraft: null,
         teacherExceptionDraft: null,
         teacherCreateType: 'availability',
+        modalReopenGuardUntil: 0,
+        teacherCreateSubmitting: false,
+        teacherExceptionSubmitting: false,
+        teacherTouch: {
+          timerId: null,
+          started: false,
+          startMeta: null,
+          startTarget: null,
+          startX: 0,
+          startY: 0,
+          lastOpenAt: 0,
+        },
         guestPhone: '',
         guestPin: '',
         guestStudentName: '',
-        publicManageBookingId: parseOptionalId(new URLSearchParams(window.location.search).get('public_booking_id')),
-        publicManageToken: String(new URLSearchParams(window.location.search).get('public_token') || '').trim(),
+        publicManageBookingId: parseOptionalId(URL_PARAMS.get('public_booking_id')),
+        publicManageToken: String(URL_PARAMS.get('public_token') || '').trim(),
       };
       const PAGE_PATH = String(window.location.pathname || '/').toLowerCase();
       const PAGE_MODE = PAGE_PATH.includes('/student') ? 'STUDENT' : 'TEACHER';
@@ -1530,6 +1689,8 @@
         ? 'calendar'
         : PAGE_PATH.includes('-bookings')
           ? 'bookings'
+          : PAGE_PATH.includes('-completed')
+            ? 'completed'
           : PAGE_PATH.includes('-manage')
             ? 'manage'
             : 'all';
@@ -1553,6 +1714,7 @@
       const availabilityBody = document.getElementById('availabilityBody');
       const exceptionBody = document.getElementById('exceptionBody');
       const teacherBookingsBody = document.getElementById('teacherBookingsBody');
+      const teacherCompletedList = document.getElementById('teacherCompletedList');
 
       const studentTotalSlots = document.getElementById('studentTotalSlots');
       const studentOpenSlots = document.getElementById('studentOpenSlots');
@@ -1560,20 +1722,24 @@
       const studentTeacherMeta = document.getElementById('studentTeacherMeta');
       const studentPolicyWindow = document.getElementById('studentPolicyWindow');
       const studentPolicyCutoff = document.getElementById('studentPolicyCutoff');
+      const studentTeacherNotice = document.getElementById('studentTeacherNotice');
 
       const teacherAvailCount = document.getElementById('teacherAvailCount');
       const teacherExceptionCount = document.getElementById('teacherExceptionCount');
       const teacherActiveBookingCount = document.getElementById('teacherActiveBookingCount');
       const teacherWeekLabel = document.getElementById('teacherWeekLabel');
       const teacherCalendarGrid = document.getElementById('teacherCalendarGrid');
+      const teacherOpenSlotList = document.getElementById('teacherOpenSlotList');
       const teacherGridStep = document.getElementById('teacherGridStep');
       const teacherInviteBtn = document.getElementById('teacherInviteBtn');
       const teacherCreateType = document.getElementById('teacherCreateType');
       const teacherDragHint = document.getElementById('teacherDragHint');
       const teacherCreateModal = document.getElementById('teacherCreateModal');
       const teacherCreateForm = document.getElementById('teacherCreateForm');
+      const teacherCreateSaveBtn = document.getElementById('teacherCreateSaveBtn');
       const teacherExceptionModal = document.getElementById('teacherExceptionModal');
       const teacherExceptionQuickForm = document.getElementById('teacherExceptionQuickForm');
+      const teacherExceptionSaveBtn = document.getElementById('teacherExceptionSaveBtn');
       const guestAccessPanel = document.getElementById('guestAccessPanel');
       const guestAccessForm = document.getElementById('guestAccessForm');
       const guestLookupBtn = document.getElementById('guestLookupBtn');
@@ -1583,8 +1749,10 @@
       const registerForm = document.getElementById('registerForm');
       const availabilityForm = document.getElementById('availabilityForm');
       const exceptionForm = document.getElementById('exceptionForm');
+      const teacherProfileForm = document.getElementById('teacherProfileForm');
       const availableOnlyToggle = document.getElementById('availableOnlyToggle');
       const sectionLinks = Array.from(document.querySelectorAll('[data-nav-section]'));
+      const TIME_ALIGNMENT_MIN = 30;
 
       function nowStamp() {
         return new Date().toLocaleTimeString('ko-KR', { hour12: false });
@@ -1595,8 +1763,80 @@
         logEl.textContent = line + logEl.textContent;
       }
 
+      function translateApiError(errorCode, payload = {}) {
+        const code = String(errorCode || '').trim();
+        if (!code) return '';
+        const map = {
+          unauthorized: '로그인이 필요합니다.',
+          forbidden: '권한이 없습니다.',
+          internal_server_error: '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+          too_many_requests: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+          invalid_request: '요청값이 올바르지 않습니다.',
+          invalid_id: 'ID 형식이 올바르지 않습니다.',
+          not_found: '요청한 데이터를 찾을 수 없습니다.',
+          invalid_datetime: '날짜/시간 형식이 올바르지 않습니다.',
+          invalid_teacher_id: '선생님 ID 형식이 올바르지 않습니다.',
+          invalid_booking_id: '예약 ID 형식이 올바르지 않습니다.',
+          invalid_guest_student_id: '비회원 ID 형식이 올바르지 않습니다.',
+          teacher_not_found: '선생님 정보를 찾을 수 없습니다.',
+          student_not_found: '학생 정보를 찾을 수 없습니다.',
+          slot_not_available: '예약 가능한 시간이 아닙니다.',
+          slot_already_booked: '이미 예약된 시간입니다.',
+          start_at_in_past: '지난 시간은 예약할 수 없습니다.',
+          start_at_exceeds_booking_window: '예약 가능 기간을 벗어난 시간입니다.',
+          duration_min_mismatch: '선택한 수업 블럭 길이와 요청 길이가 다릅니다.',
+          booking_not_found: '예약을 찾을 수 없습니다.',
+          booking_not_pending: '승인 대기 예약만 승인할 수 있습니다.',
+          booking_not_active: '취소 가능한 예약 상태가 아닙니다.',
+          booking_not_completable: '완료 처리할 수 없는 예약입니다.',
+          cancel_cutoff_passed: '취소 가능 시간이 지나 취소할 수 없습니다.',
+          invalid_guest_credentials: '비회원 정보(휴대폰/PIN)가 올바르지 않습니다.',
+          guest_pin_locked: 'PIN 입력이 잠겼습니다. 잠시 후 다시 시도해 주세요.',
+          invalid_public_access_token: '유효하지 않거나 만료된 관리 링크입니다.',
+          cancel_reason: '취소 사유를 입력해 주세요.',
+          exception_conflict: '이미 등록된 예외 시간과 겹칩니다.',
+          availability_conflict: '이미 등록된 수업 블럭과 시간이 겹칩니다.',
+          availability_duplicate: '같은 시간표가 이미 존재합니다.',
+          one_time_availability_conflict: '이미 등록된 일회성 블럭과 시간이 겹칩니다.',
+          one_time_availability_duplicate: '같은 일회성 블럭이 이미 존재합니다.',
+          exception_duplicate: '같은 예외 블럭이 이미 존재합니다.',
+          time_must_align_to_30_min: '시간은 30분 단위(00분/30분)로만 입력할 수 있습니다.',
+          teacher_private_comment: '선생님 메모를 입력해 주세요.',
+          student_comment: '학생 전달 코멘트를 입력해 주세요.',
+          at_least_one_comment_is_required: '수정할 코멘트를 하나 이상 입력해 주세요.',
+          'cancel_reason is required': '취소 사유를 입력해 주세요.',
+          'teacher_private_comment is required': '선생님 메모를 입력해 주세요.',
+          'student_comment is required': '학생 전달 코멘트를 입력해 주세요.',
+          'teacher_user_id must be a positive integer': '선생님 ID는 양의 정수여야 합니다.',
+          'email already exists': '이미 사용 중인 이메일입니다.',
+          'email and password are required': '이메일과 비밀번호를 입력해 주세요.',
+          'student_user_id or student_email is required (or provide student_name, phone, pin for guest)':
+            '회원 학생 정보(학생 ID/이메일) 또는 비회원 정보(이름/휴대폰/PIN)를 입력해 주세요.',
+          'provide either student identity or guest identity, not both':
+            '회원 정보와 비회원 정보를 동시에 입력할 수 없습니다.',
+          'start_at is required (ISO datetime)': '예약 시작시간이 필요합니다.',
+          'student_name is required': '비회원 이름을 입력해 주세요.',
+          'phone is invalid': '휴대폰번호 형식이 올바르지 않습니다.',
+          'pin must be 4 digits': 'PIN은 4자리 숫자여야 합니다.',
+          'student_cancel_day_before_hour must be 0~23': '학생 취소 마감 시각은 0~23 사이여야 합니다.',
+          'student_notice must be 4000 characters or fewer': '학생 공지사항은 4000자 이하여야 합니다.',
+        };
+        if (code === 'guest_pin_locked') {
+          const retryAfterSec = Number.parseInt(payload?.retry_after_sec, 10);
+          if (Number.isInteger(retryAfterSec) && retryAfterSec > 0) {
+            const retryMin = Math.max(1, Math.ceil(retryAfterSec / 60));
+            return `PIN 입력이 잠겼습니다. 약 ${retryMin}분 후 다시 시도해 주세요.`;
+          }
+        }
+        return map[code] || '';
+      }
+
       function getErrorMessage(err) {
-        if (err?.payload?.error) return String(err.payload.error);
+        if (err?.payload?.error) {
+          const localized = translateApiError(err.payload.error, err.payload);
+          if (localized) return localized;
+          return String(err.payload.error);
+        }
         if (err?.message) return String(err.message);
         return String(err);
       }
@@ -1806,6 +2046,116 @@
         return timeLabelFromMinutes(end);
       }
 
+      function isAlignedToMinutes(totalMinutes, stepMinutes = TIME_ALIGNMENT_MIN) {
+        if (!Number.isInteger(totalMinutes) || !Number.isInteger(stepMinutes) || stepMinutes <= 0) {
+          return false;
+        }
+        return totalMinutes % stepMinutes === 0;
+      }
+
+      function ensureTimeRangeAligned(startTime, endTime, label = '시간') {
+        const startMinute = minutesFromTimeLocal(startTime);
+        const endMinute = minutesFromTimeLocal(endTime);
+        if (startMinute === null || endMinute === null || startMinute >= endMinute) {
+          throw new Error(`${label}의 시작/종료를 올바르게 입력해 주세요.`);
+        }
+        if (!isAlignedToMinutes(startMinute) || !isAlignedToMinutes(endMinute)) {
+          throw new Error(`${label}은 30분 단위(00분/30분)로만 입력할 수 있습니다.`);
+        }
+        return { startMinute, endMinute };
+      }
+
+      function buildCalendarInviteUrl(teacherUserId) {
+        return `${window.location.origin}/student-calendar.html?teacher=${encodeURIComponent(String(teacherUserId))}`;
+      }
+
+      function buildLessonInviteUrl(teacherUserId, startAtIso) {
+        const params = new URLSearchParams({
+          teacher: String(teacherUserId),
+          start_at: String(startAtIso),
+        });
+        return `${window.location.origin}/student-calendar.html?${params.toString()}`;
+      }
+
+      function renderTeacherProfileForm() {
+        if (!teacherProfileForm) return;
+        const profile = state.teacherProfile || {};
+        const cancelHour = Number.parseInt(profile.student_cancel_day_before_hour, 10);
+        teacherProfileForm.elements.student_cancel_day_before_hour.value = Number.isInteger(cancelHour)
+          ? String(cancelHour)
+          : '21';
+        teacherProfileForm.elements.timezone.value = String(profile.timezone || 'Asia/Seoul');
+        teacherProfileForm.elements.student_notice.value = String(profile.student_notice || '');
+      }
+
+      function renderTeacherOpenSlotList() {
+        if (!teacherOpenSlotList || PAGE_MODE !== 'TEACHER') return;
+        const { from } = weekRange(state.teacherWeekCursor);
+        const days = buildWeekDays(from);
+        const openSlots = [];
+        for (const day of days) {
+          const dateKey = toDateKeyFromDate(day);
+          const slots = (state.slotsByDate[dateKey] || [])
+            .filter((slot) => slot.is_available)
+            .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+          for (const slot of slots) {
+            openSlots.push(slot);
+          }
+        }
+
+        if (!openSlots.length) {
+          teacherOpenSlotList.innerHTML = '<div class="hint">이번 주에 학생에게 열려 있는 슬롯이 없습니다.</div>';
+          return;
+        }
+
+        teacherOpenSlotList.innerHTML = '';
+        for (const slot of openSlots) {
+          const row = document.createElement('div');
+          row.className = 'slot-row';
+          const title = String(slot.lesson_title || '').trim() || '수업';
+          const durationMin = Number.parseInt(slot.duration_min, 10) || state.teacherGridStepMin || 30;
+          row.innerHTML = `
+            <div>
+              <strong>${escapeHtml(title)}</strong>
+              <div class="hint mono">${formatDateTime(slot.start_at)} ~ ${formatDateTime(slot.end_at)}</div>
+            </div>
+            <div class="actions">
+              <button type="button" data-copy-lesson-link-start-at="${escapeHtml(slot.start_at)}">레슨 링크 복사</button>
+              <button type="button" data-book-slot-on-behalf="${escapeHtml(slot.start_at)}" data-book-slot-duration="${durationMin}">대리 예약</button>
+            </div>
+          `;
+          teacherOpenSlotList.appendChild(row);
+        }
+      }
+
+      function clearTeacherTouchState() {
+        if (state.teacherTouch.timerId) {
+          window.clearTimeout(state.teacherTouch.timerId);
+          state.teacherTouch.timerId = null;
+        }
+        state.teacherTouch.started = false;
+        state.teacherTouch.startMeta = null;
+        state.teacherTouch.startTarget = null;
+        state.teacherTouch.startX = 0;
+        state.teacherTouch.startY = 0;
+      }
+
+      function setTeacherCreateSubmitting(submitting) {
+        state.teacherCreateSubmitting = Boolean(submitting);
+        if (teacherCreateSaveBtn) {
+          teacherCreateSaveBtn.disabled = state.teacherCreateSubmitting;
+          teacherCreateSaveBtn.textContent = state.teacherCreateSubmitting ? '저장 중...' : '일정 저장';
+        }
+      }
+
+      function setTeacherExceptionSubmitting(submitting) {
+        state.teacherExceptionSubmitting = Boolean(submitting);
+        if (teacherExceptionSaveBtn) {
+          teacherExceptionSaveBtn.disabled = state.teacherExceptionSubmitting;
+          teacherExceptionSaveBtn.textContent = state.teacherExceptionSubmitting ? '저장 중...' : '불가 일정 저장';
+        }
+      }
+
       function getCellMetaFromEventTarget(target) {
         const cell = target?.closest?.('td.week-cell');
         if (!cell) return null;
@@ -1813,6 +2163,11 @@
         const minute = Number.parseInt(cell.getAttribute('data-minute') || '', 10);
         if (!dateKey || !Number.isInteger(minute)) return null;
         return { cell, dateKey, minute };
+      }
+
+      function getCellMetaFromPoint(clientX, clientY) {
+        const target = document.elementFromPoint(clientX, clientY);
+        return getCellMetaFromEventTarget(target);
       }
 
       function getTeacherDragPreview(drag = state.teacherDrag) {
@@ -1914,9 +2269,11 @@
           const showCalendar = PAGE_SECTION === 'all' || PAGE_SECTION === 'calendar';
           const showManage = PAGE_SECTION === 'all' || PAGE_SECTION === 'manage';
           const showBookings = PAGE_SECTION === 'all' || PAGE_SECTION === 'bookings';
+          const showCompleted = PAGE_SECTION === 'all' || PAGE_SECTION === 'completed';
           setVisible('teacherCalendarSection', showCalendar);
           setVisible('teacherManageSection', showManage);
           setVisible('teacherBookingsSection', showBookings);
+          setVisible('teacherCompletedSection', showCompleted);
         }
 
         for (const link of sectionLinks) {
@@ -2036,6 +2393,12 @@
         }
 
         if (
+          PAGE_MODE === 'TEACHER' &&
+          state.user?.role === 'TEACHER' &&
+          items.some((it) => String(it.id) === String(state.user.id))
+        ) {
+          state.selectedTeacherId = String(state.user.id);
+        } else if (
           state.invitedTeacherId &&
           items.some((it) => String(it.id) === String(state.invitedTeacherId))
         ) {
@@ -2054,12 +2417,22 @@
           studentTeacherMeta.textContent = '선생님을 선택하세요';
           studentPolicyWindow.textContent = '예약 가능 범위: -';
           studentPolicyCutoff.textContent = '취소 마감: -';
+          if (studentTeacherNotice) {
+            studentTeacherNotice.textContent = '선생님을 선택하면 공지사항이 표시됩니다.';
+          }
           return;
         }
 
         studentTeacherMeta.textContent = `담당: ${teacher.name} · ${teacher.timezone}`;
         studentPolicyWindow.textContent = `예약 가능 범위: 오늘부터 ${teacher.booking_window_days}일`;
-        studentPolicyCutoff.textContent = `학생 취소 마감: ${teacher.cancel_cutoff_hours}시간 전`;
+        const cancelHour = Number.parseInt(teacher.student_cancel_day_before_hour, 10);
+        studentPolicyCutoff.textContent = Number.isInteger(cancelHour)
+          ? `학생 취소 마감: 수업 전날 ${String(cancelHour).padStart(2, '0')}:00`
+          : '학생 취소 마감: 수업 전날 21:00';
+        if (studentTeacherNotice) {
+          const notice = String(teacher.student_notice || '').trim();
+          studentTeacherNotice.textContent = notice || '등록된 공지사항이 없습니다.';
+        }
       }
 
       async function loadTeachers() {
@@ -2095,9 +2468,7 @@
       function renderTeacherStats() {
         const activeWeekly = (state.teacherAvailability || []).filter((row) => row.is_active);
         const activeOneTime = (state.teacherOneTimeAvailability || []).filter((row) => row.is_active);
-        const activeTeacherBookings = (state.teacherBookings || []).filter((row) =>
-          ['PENDING', 'BOOKED'].includes(row.status)
-        );
+        const activeTeacherBookings = state.teacherActiveBookings || [];
 
         teacherAvailCount.textContent = String(activeWeekly.length + activeOneTime.length);
         teacherExceptionCount.textContent = String((state.teacherExceptions || []).length);
@@ -2126,11 +2497,23 @@
         for (const [dateKey, slots] of Object.entries(state.slotsByDate || {})) {
           const list = [];
           for (const slot of slots) {
-            const d = new Date(slot.start_at);
-            if (Number.isNaN(d.getTime())) continue;
-            list.push({ minute: d.getHours() * 60 + d.getMinutes(), slot });
+            const startDate = new Date(slot.start_at);
+            const endDate = new Date(slot.end_at);
+            if (Number.isNaN(startDate.getTime())) continue;
+            let startMinute = startDate.getHours() * 60 + startDate.getMinutes();
+            let endMinute = Number.isNaN(endDate.getTime())
+              ? startMinute + (Number.parseInt(slot.duration_min, 10) || step)
+              : endDate.getHours() * 60 + endDate.getMinutes();
+            if (!Number.isInteger(endMinute) || endMinute <= startMinute) {
+              endMinute = startMinute + step;
+            }
+            list.push({
+              startMinute,
+              endMinute,
+              slot,
+            });
           }
-          list.sort((a, b) => a.minute - b.minute);
+          list.sort((a, b) => a.startMinute - b.startMinute);
           slotsByDate.set(dateKey, list);
         }
 
@@ -2142,23 +2525,42 @@
             const dateKey = toDateKeyFromDate(day);
             const holidayName = state.holidaysByDate[dateKey] || '';
             const daySlots = slotsByDate.get(dateKey) || [];
-            const slotEntry = daySlots.find((item) => item.minute >= minute && item.minute < bucketEnd) || null;
-            const slot = slotEntry?.slot || null;
+            const overlapEntries = daySlots.filter(
+              (item) => item.startMinute < bucketEnd && item.endMinute > minute
+            );
+            const hasAvailable = overlapEntries.some((item) => item.slot?.is_available);
+            const hasDisplayableBooked = !state.availableOnly && overlapEntries.some((item) => !item.slot?.is_available);
+            const startAvailableEntry =
+              overlapEntries.find(
+                (item) =>
+                  item.slot?.is_available &&
+                  item.startMinute >= minute &&
+                  item.startMinute < bucketEnd
+              ) || null;
+            const startBookedEntry =
+              overlapEntries.find(
+                (item) =>
+                  !item.slot?.is_available &&
+                  item.startMinute >= minute &&
+                  item.startMinute < bucketEnd
+              ) || null;
             const classes = ['week-cell'];
             if (dateKey === state.selectedDateKey) classes.push('selected');
             if (dateKey < todayKey || (dateKey === todayKey && minute < nowMinutes)) classes.push('past');
-            if (slot?.is_available) classes.push('has-available');
+            if (hasAvailable) classes.push('has-available');
+            else if (hasDisplayableBooked) classes.push('has-booked');
             if (holidayName) classes.push('holiday');
 
             let content = `<button type="button" class="week-create-btn" data-pick-date="${dateKey}">+</button>`;
-            if (slot?.is_available) {
+            if (startAvailableEntry?.slot) {
+              const slot = startAvailableEntry.slot;
               const slotTitle = (slot.lesson_title || '').trim();
               const label = slotTitle || '수강신청';
               const duration = Number.parseInt(slot.duration_min, 10) || step;
               content = `<button type="button" class="week-slot-btn available" data-book-slot="${slot.start_at}" data-book-duration="${duration}" data-pick-date="${dateKey}" title="${escapeHtml(slotTitle || '예약 가능')}">${escapeHtml(label)}</button>`;
-            } else if (slot && !state.availableOnly) {
+            } else if (startBookedEntry?.slot && !state.availableOnly) {
               content = '<span class="week-booked-chip">마감</span>';
-            } else if (slot && state.availableOnly) {
+            } else if (overlapEntries.length && state.availableOnly && !hasAvailable) {
               content = '';
             }
 
@@ -2200,6 +2602,7 @@
             const pickDate = bookButton.getAttribute('data-pick-date');
             if (pickDate) state.selectedDateKey = pickDate;
             runAction('수강신청', async () => {
+              if (!confirmBookingRequest(startAt, durationMin)) return;
               await createBooking(startAt, durationMin);
               await loadSlotsForCurrentMonth();
               await loadMyBookings();
@@ -2247,20 +2650,28 @@
         for (const slot of slots) {
           const row = document.createElement('div');
           row.className = `slot-item ${slot.is_available ? '' : 'booked'}`;
+          const isInvitedSlot = Boolean(state.invitedStartAtIso) && String(slot.start_at) === String(state.invitedStartAtIso);
+          if (isInvitedSlot) {
+            row.style.outline = '2px solid #4b7ec3';
+            row.style.outlineOffset = '2px';
+          }
 
           const info = document.createElement('div');
           const slotTitle = escapeHtml(slot.lesson_title || '일반 수업');
-          info.innerHTML = `<strong>${formatTime(slot.start_at)} - ${formatTime(slot.end_at)}</strong><br /><small>${slotTitle} · ${slot.is_available ? '<span class="status-badge status-AVAILABLE">예약 가능</span>' : '이미 예약됨'}</small>`;
+          const invitedBadge = isInvitedSlot ? ' · <span class="status-badge status-TRUE">공유 링크</span>' : '';
+          info.innerHTML = `<strong>${formatTime(slot.start_at)} - ${formatTime(slot.end_at)}</strong><br /><small>${slotTitle} · ${slot.is_available ? '<span class="status-badge status-AVAILABLE">예약 가능</span>' : '이미 예약됨'}${invitedBadge}</small>`;
 
           const action = document.createElement('button');
           action.type = 'button';
-          action.textContent = slot.is_available ? '예약' : '예약됨';
+          action.textContent = slot.is_available ? (isInvitedSlot ? '공유 레슨 예약' : '예약') : '예약됨';
           action.disabled = !slot.is_available;
           if (slot.is_available) action.className = 'primary';
 
           action.addEventListener('click', () => {
             runAction('예약 생성', async () => {
-              await createBooking(slot.start_at, Number.parseInt(slot.duration_min, 10) || state.studentGridStepMin);
+              const durationMin = Number.parseInt(slot.duration_min, 10) || state.studentGridStepMin;
+              if (!confirmBookingRequest(slot.start_at, durationMin)) return;
+              await createBooking(slot.start_at, durationMin);
               await loadSlotsForCurrentMonth();
               await loadMyBookings();
             });
@@ -2280,6 +2691,7 @@
           renderCalendar();
           renderDaySlots();
           renderStudentStats();
+          renderTeacherOpenSlotList();
           return;
         }
         const { from, to } = weekRange(state.monthCursor);
@@ -2298,19 +2710,26 @@
         }
 
         state.slotsByDate = grouped;
-        const today = new Date();
-        if (today >= from && today < to) {
-          state.selectedDateKey = toDateKeyFromDate(today);
+        const invitedSlotDateKey = state.invitedStartAtIso ? toDateKeyFromIso(state.invitedStartAtIso) : '';
+        if (invitedSlotDateKey && grouped[invitedSlotDateKey]?.length) {
+          state.selectedDateKey = invitedSlotDateKey;
+        } else {
+          const today = new Date();
+          if (today >= from && today < to) {
+            state.selectedDateKey = toDateKeyFromDate(today);
+          }
         }
         pickDefaultSelectedDate();
         renderCalendar();
         renderDaySlots();
         renderStudentStats();
+        renderTeacherOpenSlotList();
       }
 
       async function loadTeacherProfile() {
         const result = await api('/api/v1/teachers/me/profile', { auth: true });
         state.teacherProfile = result.item || null;
+        renderTeacherProfileForm();
       }
 
       function renderTeacherCalendar() {
@@ -2343,20 +2762,36 @@
           }
           exceptionsByDateKey.get(dateKey).push(ex);
         }
-        const bookingStartsByDate = new Map();
+        const bookingBlocksByDate = new Map();
         for (const row of state.teacherBookings || []) {
-          if (!['PENDING', 'BOOKED'].includes(row.status)) continue;
-          const d = new Date(row.start_at);
-          if (Number.isNaN(d.getTime())) continue;
-          const dateKey = toDateKeyFromDate(d);
-          const minute = d.getHours() * 60 + d.getMinutes();
-          if (!bookingStartsByDate.has(dateKey)) {
-            bookingStartsByDate.set(dateKey, []);
+          const rowStatus = String(row.status || '');
+          const startDate = new Date(row.start_at);
+          if (Number.isNaN(startDate.getTime())) continue;
+          const endDateCandidate = new Date(row.end_at);
+          const durationMin = Number.parseInt(row.duration_min, 10) || step;
+          const endDate = Number.isNaN(endDateCandidate.getTime())
+            ? new Date(startDate.getTime() + durationMin * 60 * 1000)
+            : endDateCandidate;
+          const shouldBlock =
+            rowStatus === 'PENDING' ||
+            rowStatus === 'BOOKED' ||
+            (rowStatus === 'COMPLETED' && endDate.getTime() > now.getTime());
+          if (!shouldBlock) continue;
+
+          const dateKey = toDateKeyFromDate(startDate);
+          const startMinute = startDate.getHours() * 60 + startDate.getMinutes();
+          const endMinute = endDate.getHours() * 60 + endDate.getMinutes();
+          if (!bookingBlocksByDate.has(dateKey)) {
+            bookingBlocksByDate.set(dateKey, []);
           }
-          bookingStartsByDate.get(dateKey).push({ minute, status: row.status });
+          bookingBlocksByDate.get(dateKey).push({
+            startMinute,
+            endMinute: endMinute > startMinute ? endMinute : startMinute + step,
+            status: rowStatus,
+          });
         }
-        for (const items of bookingStartsByDate.values()) {
-          items.sort((a, b) => a.minute - b.minute);
+        for (const items of bookingBlocksByDate.values()) {
+          items.sort((a, b) => a.startMinute - b.startMinute);
         }
 
         let rows = '';
@@ -2374,7 +2809,7 @@
             const oneTimeWindows = (oneTimeByDate.get(dateKey) || []).map((row) => ({ ...row, source: 'one_time' }));
             const windows = [...oneTimeWindows, ...weeklyWindows];
             const dayExceptions = exceptionsByDateKey.get(dateKey) || [];
-            const dayBookings = bookingStartsByDate.get(dateKey) || [];
+            const dayBookings = bookingBlocksByDate.get(dateKey) || [];
             let windowAtStart = null;
             let hasWindow = false;
             const isAllDayException = dayExceptions.some((ex) => !ex.start_time_local && !ex.end_time_local);
@@ -2407,10 +2842,16 @@
               exceptionAtStart = dayExceptions.find((ex) => !ex.start_time_local && !ex.end_time_local) || null;
             }
 
-            const bookingStart = dayBookings.find((item) => item.minute >= minute && item.minute < bucketEnd) || null;
+            const bookingOverlaps = dayBookings.filter(
+              (item) => item.startMinute < bucketEnd && item.endMinute > minute
+            );
+            const bookingStart =
+              bookingOverlaps.find((item) => item.startMinute >= minute && item.startMinute < bucketEnd) || null;
             const bookingStatusAtStart = bookingStart?.status || null;
+            const hasBlockedBooking = bookingOverlaps.length > 0;
             const isBookedStart = Boolean(bookingStatusAtStart);
             const classes = ['week-cell', 'week-teacher-cell'];
+            if (hasBlockedBooking) classes.push('has-booking');
             if (hasWindow) classes.push('has-window');
             if (hasException) classes.push('has-exception');
             if (holidayName) classes.push('holiday');
@@ -2439,7 +2880,11 @@
               content =
                 bookingStatusAtStart === 'PENDING'
                   ? '<span class="week-booked-chip">대기</span>'
+                  : bookingStatusAtStart === 'COMPLETED'
+                    ? '<span class="week-booked-chip">완료</span>'
                   : '<span class="week-booked-chip">예약</span>';
+            } else if (hasBlockedBooking) {
+              content = '';
             } else if (exceptionAtStart) {
               const exReason = escapeHtml((exceptionAtStart.reason || '').trim() || '불가');
               content = `<span class="week-exception-chip" title="${exReason}">불가</span>`;
@@ -2487,6 +2932,31 @@
 
         teacherCalendarGrid.onclick = (event) => {
           if (Date.now() - state.teacherDragEndedAt < 220) return;
+          if (Date.now() - Number(state.teacherTouch.lastOpenAt || 0) < 380) return;
+          const createTarget = event.target.closest('[data-create-teacher-slot]');
+          if (createTarget) {
+            const value = String(createTarget.getAttribute('data-create-teacher-slot') || '');
+            const [dateKey, minuteText] = value.split('|');
+            const minute = Number.parseInt(minuteText || '', 10);
+            if (dateKey && Number.isInteger(minute)) {
+              const endMinuteExclusive = Math.min(24 * 60, minute + step);
+              const preview = {
+                mode: 'create',
+                dateKey,
+                weekday: parseDateKey(dateKey).getDay(),
+                startMinute: minute,
+                endMinute: endMinuteExclusive - step,
+                endMinuteExclusive,
+                durationMin: endMinuteExclusive - minute,
+              };
+              if (state.teacherCreateType === 'exception') {
+                openTeacherExceptionModal(preview);
+              } else {
+                openTeacherCreateModal(preview);
+              }
+            }
+            return;
+          }
           const fillTarget = event.target.closest('[data-fill-availability-id]');
           if (!fillTarget) return;
           const id = Number.parseInt(fillTarget.getAttribute('data-fill-availability-id'), 10);
@@ -2547,12 +3017,9 @@
           });
         };
 
-        teacherCalendarGrid.onmousedown = (event) => {
-          if (event.button !== 0) return;
-          const meta = getCellMetaFromEventTarget(event.target);
-          if (!meta) return;
-          event.preventDefault();
-          const dragAvailabilityTarget = event.target.closest('[data-drag-availability-id]');
+        const startTeacherDrag = ({ meta, target, clientX, clientY, shiftResize = false }) => {
+          if (!meta) return false;
+          const dragAvailabilityTarget = target?.closest?.('[data-drag-availability-id]');
           if (dragAvailabilityTarget) {
             const availabilityId = Number.parseInt(
               dragAvailabilityTarget.getAttribute('data-drag-availability-id') || '',
@@ -2561,8 +3028,8 @@
             const row = availabilityById.get(availabilityId);
             const rowStartMinute = minutesFromTimeLocal(row?.start_time_local);
             const rowEndMinuteExclusive = minutesFromTimeLocal(row?.end_time_local);
-            if (!row || rowStartMinute === null || rowEndMinuteExclusive === null) return;
-            const mode = event.shiftKey ? 'resize' : 'move';
+            if (!row || rowStartMinute === null || rowEndMinuteExclusive === null) return false;
+            const mode = shiftResize ? 'resize' : 'move';
             state.teacherDrag = {
               mode,
               availabilityId,
@@ -2577,8 +3044,8 @@
               isActive: Boolean(row.is_active),
               step,
               moved: false,
-              pointerX: event.clientX,
-              pointerY: event.clientY,
+              pointerX: clientX,
+              pointerY: clientY,
             };
           } else {
             state.teacherDrag = {
@@ -2589,31 +3056,43 @@
               currentMinute: meta.minute,
               step,
               moved: false,
-              pointerX: event.clientX,
-              pointerY: event.clientY,
+              pointerX: clientX,
+              pointerY: clientY,
             };
           }
-          window.addEventListener(
-            'mouseup',
-            () => {
-              finalizeTeacherDrag();
-            },
-            { once: true }
-          );
           renderTeacherCalendar();
+          return true;
         };
 
-        teacherCalendarGrid.onmousemove = (event) => {
-          if (!state.teacherDrag) return;
-          const meta = getCellMetaFromEventTarget(event.target);
-          if (!meta) return;
+        const openTeacherCreateFromCell = ({ dateKey, minute }) => {
+          if (!dateKey || !Number.isInteger(minute)) return;
+          const startMinute = Math.max(0, Math.min(24 * 60 - step, minute));
+          const endMinuteExclusive = Math.min(24 * 60, startMinute + step);
+          const preview = {
+            mode: 'create',
+            dateKey,
+            weekday: parseDateKey(dateKey).getDay(),
+            startMinute,
+            endMinute: endMinuteExclusive - step,
+            endMinuteExclusive,
+            durationMin: endMinuteExclusive - startMinute,
+          };
+          if (state.teacherCreateType === 'exception') {
+            openTeacherExceptionModal(preview);
+          } else {
+            openTeacherCreateModal(preview);
+          }
+        };
+
+        const updateTeacherDrag = ({ meta, clientX, clientY }) => {
+          if (!state.teacherDrag || !meta) return;
           if (state.teacherDrag.mode !== 'move' && meta.dateKey !== state.teacherDrag.dateKey) return;
           const changed =
             meta.minute !== state.teacherDrag.currentMinute || meta.dateKey !== state.teacherDrag.currentDateKey;
           state.teacherDrag.currentMinute = meta.minute;
           state.teacherDrag.currentDateKey = meta.dateKey;
-          state.teacherDrag.pointerX = event.clientX;
-          state.teacherDrag.pointerY = event.clientY;
+          state.teacherDrag.pointerX = clientX;
+          state.teacherDrag.pointerY = clientY;
           if (changed) {
             state.teacherDrag.moved = true;
             renderTeacherCalendar();
@@ -2622,8 +3101,128 @@
           renderTeacherDragHint(getTeacherDragPreview());
         };
 
+        teacherCalendarGrid.onmousedown = (event) => {
+          if (event.button !== 0) return;
+          const meta = getCellMetaFromEventTarget(event.target);
+          if (!meta) return;
+          event.preventDefault();
+          const started = startTeacherDrag({
+            meta,
+            target: event.target,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            shiftResize: event.shiftKey,
+          });
+          if (!started) return;
+          window.addEventListener(
+            'mouseup',
+            () => {
+              finalizeTeacherDrag();
+            },
+            { once: true }
+          );
+        };
+
+        teacherCalendarGrid.onmousemove = (event) => {
+          if (!state.teacherDrag) return;
+          const meta = getCellMetaFromEventTarget(event.target);
+          updateTeacherDrag({
+            meta,
+            clientX: event.clientX,
+            clientY: event.clientY,
+          });
+        };
+
         teacherCalendarGrid.onmouseup = () => {
           finalizeTeacherDrag();
+        };
+
+        teacherCalendarGrid.ontouchstart = (event) => {
+          const touch = event.touches?.[0];
+          if (!touch) return;
+          const meta = getCellMetaFromPoint(touch.clientX, touch.clientY);
+          if (!meta) return;
+          const target = document.elementFromPoint(touch.clientX, touch.clientY);
+          state.teacherTouch.startMeta = meta;
+          state.teacherTouch.startTarget = target;
+          state.teacherTouch.startX = touch.clientX;
+          state.teacherTouch.startY = touch.clientY;
+          state.teacherTouch.started = false;
+          if (state.teacherTouch.timerId) {
+            window.clearTimeout(state.teacherTouch.timerId);
+          }
+          state.teacherTouch.timerId = window.setTimeout(() => {
+            const started = startTeacherDrag({
+              meta,
+              target,
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+              shiftResize: false,
+            });
+            state.teacherTouch.started = Boolean(started);
+          }, 120);
+        };
+
+        teacherCalendarGrid.ontouchmove = (event) => {
+          const touch = event.touches?.[0];
+          if (!touch) return;
+          const dx = Math.abs(touch.clientX - Number(state.teacherTouch.startX || touch.clientX));
+          const dy = Math.abs(touch.clientY - Number(state.teacherTouch.startY || touch.clientY));
+          const movedEnough = dx >= 8 || dy >= 8;
+          if (!state.teacherTouch.started && movedEnough && state.teacherTouch.startMeta) {
+            if (state.teacherTouch.timerId) {
+              window.clearTimeout(state.teacherTouch.timerId);
+              state.teacherTouch.timerId = null;
+            }
+            const started = startTeacherDrag({
+              meta: state.teacherTouch.startMeta,
+              target: state.teacherTouch.startTarget,
+              clientX: state.teacherTouch.startX,
+              clientY: state.teacherTouch.startY,
+              shiftResize: false,
+            });
+            state.teacherTouch.started = Boolean(started);
+          }
+          if (!state.teacherTouch.started || !state.teacherDrag) return;
+          const meta = getCellMetaFromPoint(touch.clientX, touch.clientY);
+          updateTeacherDrag({
+            meta,
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+          });
+          event.preventDefault();
+        };
+
+        teacherCalendarGrid.ontouchend = () => {
+          if (state.teacherTouch.timerId) {
+            window.clearTimeout(state.teacherTouch.timerId);
+            state.teacherTouch.timerId = null;
+          }
+          if (state.teacherTouch.started && state.teacherDrag) {
+            finalizeTeacherDrag();
+          } else if (state.teacherTouch.startMeta) {
+            state.teacherTouch.lastOpenAt = Date.now();
+            openTeacherCreateFromCell({
+              dateKey: state.teacherTouch.startMeta.dateKey,
+              minute: state.teacherTouch.startMeta.minute,
+            });
+          }
+          state.teacherTouch.started = false;
+          state.teacherTouch.startMeta = null;
+          state.teacherTouch.startTarget = null;
+        };
+
+        teacherCalendarGrid.ontouchcancel = () => {
+          if (state.teacherTouch.timerId) {
+            window.clearTimeout(state.teacherTouch.timerId);
+            state.teacherTouch.timerId = null;
+          }
+          if (state.teacherTouch.started && state.teacherDrag) {
+            finalizeTeacherDrag();
+          }
+          state.teacherTouch.started = false;
+          state.teacherTouch.startMeta = null;
+          state.teacherTouch.startTarget = null;
         };
       }
 
@@ -2650,7 +3249,7 @@
             <td class="mono">${formatDateTime(row.start_at)}</td>
             <td class="mono">${formatDateTime(row.end_at)}</td>
             <td>${statusBadge(row.status)}</td>
-            <td>${escapeHtml(row.student_comment || '')}</td>
+            <td>${escapeHtml(row.student_comment || row.teacher_comment || '')}</td>
             <td>${actionButtons}</td>
           `;
           myBookingsBody.appendChild(tr);
@@ -2722,8 +3321,89 @@
         throw new Error('예약 권한이 없습니다. 학생 로그인 또는 비회원 정보 입력이 필요합니다.');
       }
 
+      async function createBookingOnBehalf(startAtIso, durationMin) {
+        if (state.user?.role !== 'TEACHER') {
+          throw new Error('선생님만 대리 예약을 등록할 수 있습니다.');
+        }
+        const duration = Number.parseInt(durationMin, 10) || state.teacherGridStepMin || 30;
+        const startLabel = formatDateTime(startAtIso);
+        const endLabel = formatDateTime(new Date(new Date(startAtIso).getTime() + duration * 60 * 1000).toISOString());
+
+        const memberEmailInput = window.prompt(
+          `[대리 예약]\n${startLabel} ~ ${endLabel}\n회원 학생 이메일을 입력하세요.\n(비회원이면 빈칸으로 확인)`,
+          ''
+        );
+        if (memberEmailInput === null) return;
+        const memberEmail = String(memberEmailInput || '').trim().toLowerCase();
+        if (memberEmail) {
+          await api('/api/v1/teachers/me/bookings', {
+            method: 'POST',
+            auth: true,
+            body: {
+              start_at: startAtIso,
+              student_email: memberEmail,
+            },
+          });
+          return;
+        }
+
+        const studentName = window.prompt('비회원 수강생 이름을 입력하세요.', '');
+        if (studentName === null) return;
+        const name = String(studentName || '').trim();
+        if (!name) throw new Error('비회원 이름은 필수입니다.');
+
+        const phoneInput = window.prompt('비회원 휴대폰번호를 입력하세요. (숫자만 권장)', '');
+        if (phoneInput === null) return;
+        const phone = normalizePhoneInput(phoneInput);
+        if (!phone || phone.length < 9 || phone.length > 15) {
+          throw new Error('휴대폰번호를 올바르게 입력해 주세요.');
+        }
+
+        const pinInput = window.prompt('비회원 PIN 4자리를 입력하세요.', '');
+        if (pinInput === null) return;
+        const pin = String(pinInput || '').trim();
+        if (!/^\d{4}$/.test(pin)) {
+          throw new Error('PIN은 4자리 숫자여야 합니다.');
+        }
+
+        const result = await api('/api/v1/teachers/me/bookings', {
+          method: 'POST',
+          auth: true,
+          body: {
+            start_at: startAtIso,
+            student_name: name,
+            phone,
+            pin,
+          },
+        });
+        const manageUrl = result?.public_access?.manage_url;
+        if (manageUrl) {
+          pushLog('선생님 대리예약(비회원)', {
+            manage_url: manageUrl,
+            expires_at: result?.public_access?.expires_at,
+          });
+          window.alert('비회원 대리예약이 완료되었습니다. 관리 링크는 API 로그에서 확인할 수 있습니다.');
+        }
+      }
+
+      function confirmBookingRequest(startAtIso, durationMin) {
+        const start = new Date(startAtIso);
+        if (Number.isNaN(start.getTime())) {
+          return window.confirm('이 시간으로 예약하시겠습니까?');
+        }
+        const duration = Number.parseInt(durationMin, 10) || state.studentGridStepMin || 30;
+        const end = new Date(start.getTime() + duration * 60 * 1000);
+        const teacher = state.teachers.find((t) => String(t.id) === String(state.selectedTeacherId));
+        const teacherName = teacher?.name || `#${state.selectedTeacherId || '-'}`;
+        return window.confirm(
+          `[예약 확인]\n선생님: ${teacherName}\n시간: ${formatDateTime(start.toISOString())} ~ ${formatDateTime(
+            end.toISOString()
+          )}\n예약할까요?`
+        );
+      }
+
       async function cancelBooking(bookingId) {
-        if (state.user?.role === 'STUDENT') {
+        if (state.user?.role === 'STUDENT' || state.user?.role === 'TEACHER') {
           await api(`/api/v1/bookings/${bookingId}/cancel`, {
             method: 'POST',
             auth: true,
@@ -2783,6 +3463,9 @@
       }
 
       function openTeacherCreateModal(preview) {
+        if (Date.now() < Number(state.modalReopenGuardUntil || 0)) {
+          return;
+        }
         state.teacherCreateDraft = preview;
         teacherCreateForm.reset();
         teacherCreateForm.elements.date_local.value = formatDateKeyLabel(preview.dateKey);
@@ -2790,32 +3473,43 @@
         teacherCreateForm.elements.end_time_local.value = timeLabelFromMinutes(preview.endMinuteExclusive);
         teacherCreateForm.elements.repeat_mode.value = 'single';
         teacherCreateForm.elements.is_active.value = 'true';
+        setTeacherCreateSubmitting(false);
         teacherCreateModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
       }
 
       function closeTeacherCreateModal() {
         teacherCreateModal.classList.add('hidden');
+        setTeacherCreateSubmitting(false);
+        state.modalReopenGuardUntil = Date.now() + 420;
         state.teacherCreateDraft = null;
+        clearTeacherTouchState();
         if (teacherExceptionModal.classList.contains('hidden')) {
           document.body.style.overflow = '';
         }
       }
 
       function openTeacherExceptionModal(preview) {
+        if (Date.now() < Number(state.modalReopenGuardUntil || 0)) {
+          return;
+        }
         state.teacherExceptionDraft = preview;
         teacherExceptionQuickForm.reset();
         teacherExceptionQuickForm.elements.date_local.value = preview.dateKey;
         teacherExceptionQuickForm.elements.start_time_local.value = timeLabelFromMinutes(preview.startMinute);
         teacherExceptionQuickForm.elements.end_time_local.value = timeLabelFromMinutes(preview.endMinuteExclusive);
         teacherExceptionQuickForm.elements.reason.value = '수업 불가';
+        setTeacherExceptionSubmitting(false);
         teacherExceptionModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
       }
 
       function closeTeacherExceptionModal() {
         teacherExceptionModal.classList.add('hidden');
+        setTeacherExceptionSubmitting(false);
+        state.modalReopenGuardUntil = Date.now() + 420;
         state.teacherExceptionDraft = null;
+        clearTeacherTouchState();
         if (teacherCreateModal.classList.contains('hidden')) {
           document.body.style.overflow = '';
         }
@@ -2829,11 +3523,7 @@
         if (!dateLocal) {
           throw new Error('날짜를 선택해 주세요.');
         }
-        const startMinute = minutesFromTimeLocal(startTime);
-        const endMinute = minutesFromTimeLocal(endTime);
-        if (startMinute === null || endMinute === null || startMinute >= endMinute) {
-          throw new Error('불가 시간의 시작/종료를 올바르게 입력해 주세요.');
-        }
+        ensureTimeRangeAligned(startTime, endTime, '불가 시간');
 
         const body = {
           date_local: dateLocal,
@@ -2855,9 +3545,9 @@
           reason: body.reason,
         });
 
+        closeTeacherExceptionModal();
         await loadTeacherExceptions();
         await loadSlotsForCurrentMonth();
-        closeTeacherExceptionModal();
       }
 
       async function createTeacherAvailabilityFromDraft() {
@@ -2873,11 +3563,7 @@
         const classTitle = String(teacherCreateForm.elements.class_title.value || '').trim();
         const classNote = String(teacherCreateForm.elements.class_note.value || '').trim();
 
-        const startMinute = minutesFromTimeLocal(startTime);
-        const endMinuteExclusive = minutesFromTimeLocal(endTime);
-        if (startMinute === null || endMinuteExclusive === null || startMinute >= endMinuteExclusive) {
-          throw new Error('시작시간은 종료시간보다 빨라야 합니다.');
-        }
+        ensureTimeRangeAligned(startTime, endTime, '수업 시간');
 
         if (repeatMode === 'single') {
           await api('/api/v1/teachers/me/one-time-availability', {
@@ -2917,11 +3603,11 @@
           is_active: isActive,
         });
 
+        closeTeacherCreateModal();
         await loadTeacherAvailability();
         await loadTeacherOneTimeAvailability();
         await loadTeachers();
         await loadSlotsForCurrentMonth();
-        closeTeacherCreateModal();
       }
 
       async function loadStudentDashboard() {
@@ -2985,15 +3671,11 @@
           const canApprove = row.status === 'PENDING';
           const canCancel = ['PENDING', 'BOOKED'].includes(row.status);
           const canComplete = ['PENDING', 'BOOKED'].includes(row.status);
-          const canEditComment = row.status === 'COMPLETED';
           const canResetGuestPin = Boolean(row.is_guest_student && row.guest_student_id);
           const actions = [
             canApprove ? `<button type="button" data-approve-teacher-booking="${row.id}">승인</button>` : '',
             canCancel ? `<button type="button" data-cancel-teacher-booking="${row.id}">거절/취소</button>` : '',
             canComplete ? `<button type="button" data-complete-teacher-booking="${row.id}">완료처리</button>` : '',
-            canEditComment
-              ? `<button type="button" data-comment-teacher-booking="${row.id}" data-comment-student-value="${escapeHtml(row.student_comment || '')}" data-comment-private-value="${escapeHtml(row.teacher_private_comment || '')}">코멘트</button>`
-              : '',
             canResetGuestPin
               ? `<button type="button" data-reset-guest-pin="${row.guest_student_id}" data-reset-guest-phone="${escapeHtml(row.guest_phone || '')}">PIN초기화</button>`
               : '',
@@ -3007,11 +3689,44 @@
             <td class="mono">${formatDateTime(row.start_at)}</td>
             <td class="mono">${formatDateTime(row.end_at)}</td>
             <td>${statusBadge(row.status)}</td>
-            <td>${escapeHtml(row.student_comment || '')}</td>
+            <td>${escapeHtml(row.student_comment || row.teacher_comment || '')}</td>
             <td>${escapeHtml(row.teacher_private_comment || '')}</td>
             <td>${actions}</td>
           `;
           teacherBookingsBody.appendChild(tr);
+        }
+      }
+
+      function renderTeacherCompletedList(items) {
+        if (!teacherCompletedList) return;
+        teacherCompletedList.innerHTML = '';
+        if (!items.length) {
+          teacherCompletedList.innerHTML = '<div class="hint">완료 수업 이력이 없습니다.</div>';
+          return;
+        }
+
+        for (const row of items) {
+          const card = document.createElement('article');
+          card.className = 'history-card';
+          const studentName = row.student_email || row.student_name || row.student_user_id || '-';
+          const studentComment = escapeHtml(row.student_comment || row.teacher_comment || '');
+          const teacherMemo = escapeHtml(row.teacher_private_comment || '');
+          card.innerHTML = `
+            <div class="history-card-head">
+              <div class="history-title">#${row.id} · ${escapeHtml(String(studentName))}</div>
+              <div>${statusBadge(row.status)}</div>
+            </div>
+            <div class="history-meta">
+              <div><strong>수업시간</strong><br /><span class="mono">${formatDateTime(row.start_at)} ~ ${formatDateTime(row.end_at)}</span></div>
+              <div><strong>학생 전달 코멘트</strong><br />${studentComment || '-'}</div>
+              <div><strong>선생님 메모</strong><br />${teacherMemo || '-'}</div>
+            </div>
+            <div class="history-actions">
+              <button type="button" data-edit-completed-student="${row.id}" data-current-value="${studentComment}">학생 코멘트 수정</button>
+              <button type="button" data-edit-completed-private="${row.id}" data-current-value="${teacherMemo}">선생님 메모 수정</button>
+            </div>
+          `;
+          teacherCompletedList.appendChild(card);
         }
       }
 
@@ -3041,13 +3756,17 @@
       async function loadTeacherBookings() {
         const result = await api('/api/v1/teachers/me/bookings', { auth: true });
         state.teacherBookings = result.items || [];
-        renderTeacherBookings(state.teacherBookings);
+        state.teacherActiveBookings = state.teacherBookings.filter((row) => ['PENDING', 'BOOKED'].includes(row.status));
+        state.teacherCompletedBookings = state.teacherBookings.filter((row) => row.status === 'COMPLETED');
+        renderTeacherBookings(state.teacherActiveBookings);
+        renderTeacherCompletedList(state.teacherCompletedBookings);
         renderTeacherStats();
         renderTeacherCalendar();
       }
 
       async function loadTeacherDashboard() {
         state.teacherWeekCursor = new Date();
+        state.monthCursor = new Date(state.teacherWeekCursor);
         const { from, to } = weekRange(state.teacherWeekCursor);
         await ensureHolidayCacheForRange(from, to);
         await loadTeacherProfile();
@@ -3055,6 +3774,7 @@
         await loadTeacherOneTimeAvailability();
         await loadTeacherExceptions();
         await loadTeacherBookings();
+        await loadSlotsForCurrentMonth();
         renderTeacherCalendar();
       }
 
@@ -3154,7 +3874,15 @@
 
       teacherCreateForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        runAction('수업 일정 저장', createTeacherAvailabilityFromDraft);
+        runAction('수업 일정 저장', async () => {
+          if (state.teacherCreateSubmitting) return;
+          setTeacherCreateSubmitting(true);
+          try {
+            await createTeacherAvailabilityFromDraft();
+          } finally {
+            setTeacherCreateSubmitting(false);
+          }
+        });
       });
 
       document.getElementById('teacherExceptionCancelBtn').addEventListener('click', () => {
@@ -3169,7 +3897,15 @@
 
       teacherExceptionQuickForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        runAction('불가 일정 저장', createTeacherExceptionFromModal);
+        runAction('불가 일정 저장', async () => {
+          if (state.teacherExceptionSubmitting) return;
+          setTeacherExceptionSubmitting(true);
+          try {
+            await createTeacherExceptionFromModal();
+          } finally {
+            setTeacherExceptionSubmitting(false);
+          }
+        });
       });
 
       loginForm.addEventListener('submit', (e) => {
@@ -3281,8 +4017,10 @@
         next.setDate(next.getDate() - 7);
         runAction('선생님 이전 주 이동', async () => {
           state.teacherWeekCursor = next;
+          state.monthCursor = new Date(next);
           const { from, to } = weekRange(state.teacherWeekCursor);
           await ensureHolidayCacheForRange(from, to);
+          await loadSlotsForCurrentMonth();
           renderTeacherCalendar();
         });
       });
@@ -3292,8 +4030,10 @@
         next.setDate(next.getDate() + 7);
         runAction('선생님 다음 주 이동', async () => {
           state.teacherWeekCursor = next;
+          state.monthCursor = new Date(next);
           const { from, to } = weekRange(state.teacherWeekCursor);
           await ensureHolidayCacheForRange(from, to);
+          await loadSlotsForCurrentMonth();
           renderTeacherCalendar();
         });
       });
@@ -3301,8 +4041,10 @@
       document.getElementById('teacherTodayBtn').addEventListener('click', () => {
         runAction('선생님 이번 주 이동', async () => {
           state.teacherWeekCursor = new Date();
+          state.monthCursor = new Date(state.teacherWeekCursor);
           const { from, to } = weekRange(state.teacherWeekCursor);
           await ensureHolidayCacheForRange(from, to);
+          await loadSlotsForCurrentMonth();
           renderTeacherCalendar();
         });
       });
@@ -3314,6 +4056,7 @@
 
       document.getElementById('teacherWeekRefreshBtn').addEventListener('click', () => {
         runAction('선생님 캘린더 새로고침', async () => {
+          state.monthCursor = new Date(state.teacherWeekCursor);
           const { from, to } = weekRange(state.teacherWeekCursor);
           await ensureHolidayCacheForRange(from, to);
           await loadTeacherProfile();
@@ -3321,6 +4064,7 @@
           await loadTeacherOneTimeAvailability();
           await loadTeacherExceptions();
           await loadTeacherBookings();
+          await loadSlotsForCurrentMonth();
         });
       });
 
@@ -3329,11 +4073,70 @@
           if (!state.user?.id) {
             throw new Error('로그인 사용자 정보를 확인할 수 없습니다.');
           }
-          const inviteUrl = `${window.location.origin}/student-calendar.html?teacher=${encodeURIComponent(String(state.user.id))}`;
+          const inviteUrl = buildCalendarInviteUrl(state.user.id);
           await navigator.clipboard.writeText(inviteUrl);
-          pushLog('학생 초대 링크 생성', { invite_url: inviteUrl });
-          window.alert('학생 초대 링크를 클립보드에 복사했습니다.');
+          pushLog('학생 캘린더 링크 생성', { invite_url: inviteUrl });
+          window.alert('학생 캘린더 링크를 클립보드에 복사했습니다.');
         });
+      });
+
+      document.getElementById('teacherOpenSlotRefreshBtn')?.addEventListener('click', () => {
+        runAction('오픈 슬롯 새로고침', async () => {
+          state.monthCursor = new Date(state.teacherWeekCursor);
+          await loadSlotsForCurrentMonth();
+        });
+      });
+
+      teacherOpenSlotList?.addEventListener('click', (e) => {
+        const lessonStartAt = e.target?.dataset?.copyLessonLinkStartAt;
+        if (lessonStartAt) {
+          runAction('레슨 링크 복사', async () => {
+            if (!state.user?.id) {
+              throw new Error('로그인 사용자 정보를 확인할 수 없습니다.');
+            }
+            const lessonUrl = buildLessonInviteUrl(state.user.id, lessonStartAt);
+            await navigator.clipboard.writeText(lessonUrl);
+            pushLog('레슨 링크 생성', { lesson_url: lessonUrl, start_at: lessonStartAt });
+            window.alert('레슨 링크를 클립보드에 복사했습니다.');
+          });
+          return;
+        }
+
+        const proxyStartAt = e.target?.dataset?.bookSlotOnBehalf;
+        if (!proxyStartAt) return;
+        const proxyDuration = Number.parseInt(e.target?.dataset?.bookSlotDuration || '', 10) || 30;
+        runAction('대리 예약 등록', async () => {
+          await createBookingOnBehalf(proxyStartAt, proxyDuration);
+          await loadTeacherBookings();
+          await loadSlotsForCurrentMonth();
+        });
+      });
+
+      document.getElementById('teacherProfileSaveBtn')?.addEventListener('click', () => {
+        runAction('선생님 설정 저장', async () => {
+          const form = formObject(teacherProfileForm);
+          const cancelHour = Number.parseInt(String(form.student_cancel_day_before_hour || ''), 10);
+          if (!Number.isInteger(cancelHour) || cancelHour < 0 || cancelHour > 23) {
+            throw new Error('학생 취소 마감 시각은 0~23 사이여야 합니다.');
+          }
+          await api('/api/v1/teachers/me/profile', {
+            method: 'PATCH',
+            auth: true,
+            body: {
+              student_cancel_day_before_hour: cancelHour,
+              student_notice: String(form.student_notice || ''),
+              timezone: String(form.timezone || '').trim() || undefined,
+            },
+          });
+          await loadTeacherProfile();
+          await loadTeachers();
+          await loadSlotsForCurrentMonth();
+          renderStudentMeta();
+        });
+      });
+
+      document.getElementById('teacherProfileRefreshBtn')?.addEventListener('click', () => {
+        runAction('선생님 설정 다시불러오기', loadTeacherProfile);
       });
 
       document.getElementById('myBookingsRefreshBtn').addEventListener('click', () => {
@@ -3393,6 +4196,7 @@
       document.getElementById('availabilityCreateBtn').addEventListener('click', () => {
         runAction('시간표 등록', async () => {
           const form = formObject(availabilityForm);
+          ensureTimeRangeAligned(form.start_time_local, form.end_time_local, '시간표');
           await api('/api/v1/teachers/me/availability', {
             method: 'POST',
             auth: true,
@@ -3413,6 +4217,7 @@
         runAction('시간표 수정', async () => {
           const id = parseRequiredId(availabilityForm.elements.id.value, 'availability id');
           const form = formObject(availabilityForm);
+          ensureTimeRangeAligned(form.start_time_local, form.end_time_local, '시간표');
           await api(`/api/v1/teachers/me/availability/${id}`, {
             method: 'PATCH',
             auth: true,
@@ -3465,11 +4270,7 @@
           if (!hasStart || !hasEnd) {
             throw new Error('예외는 시작/종료 시간을 모두 입력해야 합니다.');
           }
-          const startMinute = minutesFromTimeLocal(form.start_time_local.trim());
-          const endMinute = minutesFromTimeLocal(form.end_time_local.trim());
-          if (startMinute === null || endMinute === null || startMinute >= endMinute) {
-            throw new Error('예외 시간 범위를 올바르게 입력해 주세요.');
-          }
+          ensureTimeRangeAligned(form.start_time_local.trim(), form.end_time_local.trim(), '예외 시간');
 
           const body = {
             date_local: form.date_local,
@@ -3517,6 +4318,10 @@
         runAction('선생님 예약 조회', loadTeacherBookings);
       });
 
+      document.getElementById('teacherCompletedRefreshBtn')?.addEventListener('click', () => {
+        runAction('완료 수업 조회', loadTeacherBookings);
+      });
+
       teacherBookingsBody.addEventListener('click', (e) => {
         const approveId = e.target?.dataset?.approveTeacherBooking;
         if (approveId) {
@@ -3541,30 +4346,6 @@
             });
             await loadTeacherBookings();
             await loadSlotsForCurrentMonth();
-          });
-          return;
-        }
-
-        const commentId = e.target?.dataset?.commentTeacherBooking;
-        if (commentId) {
-          runAction('수업 코멘트 수정', async () => {
-            const currentStudent = String(e.target?.dataset?.commentStudentValue || '');
-            const currentPrivate = String(e.target?.dataset?.commentPrivateValue || '');
-            const studentComment = promptRequiredText(
-              '학생에게 전달할 코멘트를 입력해 주세요. (필수)',
-              currentStudent
-            );
-            if (studentComment === null) return;
-            const teacherPrivateComment = promptRequiredText(
-              '선생님 내부 메모를 입력해 주세요. (필수)',
-              currentPrivate
-            );
-            if (teacherPrivateComment === null) return;
-            await completeBooking(commentId, {
-              teacherPrivateComment,
-              studentComment,
-            });
-            await loadTeacherBookings();
           });
           return;
         }
@@ -3594,6 +4375,31 @@
         });
       });
 
+      teacherCompletedList?.addEventListener('click', (e) => {
+        const studentCommentId = e.target?.dataset?.editCompletedStudent;
+        if (studentCommentId) {
+          runAction('학생 전달 코멘트 수정', async () => {
+            const current = String(e.target?.dataset?.currentValue || '');
+            const next = promptRequiredText('학생에게 전달할 코멘트를 입력해 주세요. (필수)', current);
+            if (next === null) return;
+            await completeBooking(studentCommentId, { studentComment: next });
+            await loadTeacherBookings();
+          });
+          return;
+        }
+
+        const privateCommentId = e.target?.dataset?.editCompletedPrivate;
+        if (privateCommentId) {
+          runAction('선생님 메모 수정', async () => {
+            const current = String(e.target?.dataset?.currentValue || '');
+            const next = promptRequiredText('선생님 내부 메모를 입력해 주세요. (필수)', current);
+            if (next === null) return;
+            await completeBooking(privateCommentId, { teacherPrivateComment: next });
+            await loadTeacherBookings();
+          });
+        }
+      });
+
       window.addEventListener('unhandledrejection', (e) => {
         pushLog('UI_REJECTION', {
           message: e.reason?.message || String(e.reason),
@@ -3621,6 +4427,13 @@
         teacherCreateType.value = state.teacherCreateType;
         state.studentGridStepMin = 30;
         state.teacherGridStepMin = 30;
+        if (PAGE_MODE === 'STUDENT' && state.invitedStartAtIso) {
+          const invited = new Date(state.invitedStartAtIso);
+          if (!Number.isNaN(invited.getTime())) {
+            state.monthCursor = new Date(invited);
+            state.selectedDateKey = toDateKeyFromDate(invited);
+          }
+        }
         renderAuth();
         renderStudentMeta();
         renderStudentStats();

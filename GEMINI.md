@@ -65,3 +65,28 @@ docker-compose up --build -d backend frontend
 docker-compose exec -T backend npm run -s migrate
 bash /Users/ndh/workspace/scripts/smoke-test-api.sh
 ```
+
+## 8) 2026-03-06 추가 인수인계
+- 취소 정책
+  - 학생 취소(회원/비회원)는 `수업 전날 N시` 정책 적용
+  - DB 필드: `teacher_profiles.student_cancel_day_before_hour` (기본 21)
+  - 관련 API는 취소 컷오프를 `cancel_cutoff_hours` 대신 위 정책으로 계산
+- 공지사항
+  - DB 필드: `teacher_profiles.student_notice`
+  - `/api/v1/teachers`, `/api/v1/teachers/:teacherId/slots`, `/api/v1/teachers/me/profile`에서 노출
+  - 프론트 학생 화면에 선생님 공지 패널 추가
+- 중복 생성 방지
+  - 마이그레이션 `010_teacher_cancel_policy_notice_and_dedup.sql`
+  - 기존 중복 레코드 정리 + 유니크 인덱스 적용
+  - API 충돌 에러 코드: `availability_duplicate`, `one_time_availability_duplicate`, `exception_duplicate`
+- 교사 대리예약
+  - 신규 API: `POST /api/v1/teachers/me/bookings`
+  - 입력: `start_at` + (`student_user_id|student_email`) 또는 (`student_name`,`phone`,`pin`)
+  - 생성 상태: `BOOKED`
+- 링크 분리
+  - 캘린더 링크: `student-calendar.html?teacher=<id>`
+  - 레슨 링크: `student-calendar.html?teacher=<id>&start_at=<ISO>`
+  - 교사 캘린더에 오픈 슬롯 리스트 + 레슨 링크 복사 + 대리예약 버튼 추가
+- 버그 수정
+  - 교사 예약 승인/취소 탭에서 거절/취소 미동작: 프론트 `cancelBooking` 분기 수정
+  - 완료 수업 이력의 “완료시각” 표시 제거

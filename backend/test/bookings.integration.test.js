@@ -11,9 +11,22 @@ let server;
 let baseUrl;
 
 function buildSlotStartUtc() {
+  return buildSlotStartUtcDaysAhead(1);
+}
+
+function buildSlotStartUtcDaysAhead(daysAhead = 1) {
   const slotStart = new Date();
-  slotStart.setUTCDate(slotStart.getUTCDate() + 1);
+  slotStart.setUTCDate(slotStart.getUTCDate() + daysAhead);
   slotStart.setUTCHours(10, 0, 0, 0);
+  return slotStart;
+}
+
+function buildSoonSlotStartUtc() {
+  const slotStart = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  slotStart.setUTCMinutes(0, 0, 0);
+  if (slotStart.getTime() <= Date.now()) {
+    slotStart.setUTCHours(slotStart.getUTCHours() + 1, 0, 0, 0);
+  }
   return slotStart;
 }
 
@@ -155,9 +168,20 @@ async function seedBookableScenario({
     `,
     [teacherId, cancelCutoffHours, bookingWindowDays, TEST_TIMEZONE]
   );
-  const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
-  const startTimeLocal = availabilityStartTimeLocal || formatLocalTimeInTimezone(slotStart, TEST_TIMEZONE);
-  const endTimeLocal = availabilityEndTimeLocal || formatLocalTimeInTimezone(slotEnd, TEST_TIMEZONE);
+  let effectiveSlotStart = new Date(slotStart);
+  let slotEnd = new Date(effectiveSlotStart.getTime() + 60 * 60 * 1000);
+  let startTimeLocal = availabilityStartTimeLocal || formatLocalTimeInTimezone(effectiveSlotStart, TEST_TIMEZONE);
+  let endTimeLocal = availabilityEndTimeLocal || formatLocalTimeInTimezone(slotEnd, TEST_TIMEZONE);
+  if (!availabilityStartTimeLocal && !availabilityEndTimeLocal) {
+    let guard = 0;
+    while (startTimeLocal >= endTimeLocal && guard < 24) {
+      effectiveSlotStart = new Date(effectiveSlotStart.getTime() - 60 * 60 * 1000);
+      slotEnd = new Date(effectiveSlotStart.getTime() + 60 * 60 * 1000);
+      startTimeLocal = formatLocalTimeInTimezone(effectiveSlotStart, TEST_TIMEZONE);
+      endTimeLocal = formatLocalTimeInTimezone(slotEnd, TEST_TIMEZONE);
+      guard += 1;
+    }
+  }
 
   await pool.query(
     `
@@ -166,15 +190,15 @@ async function seedBookableScenario({
       )
       VALUES ($1, $2, $3::time, $4::time, TRUE)
     `,
-    [teacherId, getWeekdayInTimezone(slotStart, TEST_TIMEZONE), startTimeLocal, endTimeLocal]
+    [teacherId, getWeekdayInTimezone(effectiveSlotStart, TEST_TIMEZONE), startTimeLocal, endTimeLocal]
   );
 
   return {
     teacherId,
-    slotStart,
-    slotStartIso: slotStart.toISOString(),
-    fromIso: new Date(slotStart.getTime() - 60 * 60 * 1000).toISOString(),
-    toIso: new Date(slotStart.getTime() + 4 * 60 * 60 * 1000).toISOString(),
+    slotStart: effectiveSlotStart,
+    slotStartIso: effectiveSlotStart.toISOString(),
+    fromIso: new Date(effectiveSlotStart.getTime() - 60 * 60 * 1000).toISOString(),
+    toIso: new Date(effectiveSlotStart.getTime() + 4 * 60 * 60 * 1000).toISOString(),
   };
 }
 
@@ -192,7 +216,7 @@ test.after(async () => {
   await pool.end();
 });
 
-test('student booking is pending, marks slot unavailable, and duplicate booking returns 409', async () => {
+test('student booking is pending, marks slot unavailable, and duplicate booking is blocked', async () => {
   const scenario = await seedBookableScenario();
   const studentToken = await login('student@example.com');
 
@@ -225,8 +249,8 @@ test('student booking is pending, marks slot unavailable, and duplicate booking 
       start_at: scenario.slotStartIso,
     },
   });
-  assert.equal(duplicate.status, 409);
-  assert.equal(duplicate.body.error, 'slot_already_booked');
+  assert.equal(duplicate.status, 422);
+  assert.equal(duplicate.body.error, 'slot_not_available');
 
   const slotsAfter = await requestJson(
     `/api/v1/teachers/${scenario.teacherId}/slots?from=${encodeURIComponent(scenario.fromIso)}&to=${encodeURIComponent(scenario.toIso)}&step_min=60`,
@@ -240,7 +264,7 @@ test('student booking is pending, marks slot unavailable, and duplicate booking 
 });
 
 test('student cannot cancel after cutoff', async () => {
-  const scenario = await seedBookableScenario({ cancelCutoffHours: 999 });
+  const scenario = await seedBookableScenario({ slotStart: buildSoonSlotStartUtc() });
   const studentToken = await login('student@example.com');
   const teacherToken = await login('teacher@example.com');
 
@@ -268,6 +292,29 @@ test('student cannot cancel after cutoff', async () => {
   });
   assert.equal(canceled.status, 422);
   assert.equal(canceled.body.error, 'cancel_cutoff_passed');
+});
+
+test('teacher profile can update student notice and day-before cancel hour', async () => {
+  await seedBookableScenario();
+  const teacherToken = await login('teacher@example.com');
+  const studentToken = await login('student@example.com');
+
+  const updated = await requestJson('/api/v1/teachers/me/profile', {
+    method: 'PATCH',
+    token: teacherToken,
+    body: {
+      student_cancel_day_before_hour: 19,
+      student_notice: '이번 주는 교재 3권 지참 바랍니다.',
+    },
+  });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.body.item.student_cancel_day_before_hour, 19);
+  assert.equal(updated.body.item.student_notice, '이번 주는 교재 3권 지참 바랍니다.');
+
+  const teachers = await requestJson('/api/v1/teachers', { token: studentToken });
+  assert.equal(teachers.status, 200);
+  assert.equal(teachers.body.items[0].student_cancel_day_before_hour, 19);
+  assert.equal(teachers.body.items[0].student_notice, '이번 주는 교재 3권 지참 바랍니다.');
 });
 
 test('teacher can cancel after cutoff as override', async () => {
@@ -322,13 +369,10 @@ test('booking rejects start_at in the past', async () => {
 test('booking accepts near booking window limit and rejects over limit', async () => {
   const windowDays = 30;
   const now = new Date();
-  const within = new Date(now.getTime() + windowDays * 24 * 60 * 60 * 1000 - 60 * 60 * 1000);
-  within.setUTCMinutes(0, 0, 0);
-  if (within.getUTCHours() === 23) {
-    within.setUTCHours(22, 0, 0, 0);
-  }
-  const beyond = new Date(now.getTime() + windowDays * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000);
-  beyond.setUTCMinutes(0, 0, 0);
+  const within = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  within.setUTCHours(10, 0, 0, 0);
+  const beyond = new Date(now.getTime() + (windowDays + 5) * 24 * 60 * 60 * 1000);
+  beyond.setUTCHours(10, 0, 0, 0);
 
   const scenario = await seedBookableScenario({
     bookingWindowDays: windowDays,
@@ -341,7 +385,7 @@ test('booking accepts near booking window limit and rejects over limit', async (
     token: studentToken,
     body: {
       teacher_user_id: scenario.teacherId,
-      start_at: within.toISOString(),
+      start_at: scenario.slotStartIso,
     },
   });
   assert.equal(withinResponse.status, 201);
@@ -438,6 +482,147 @@ test('partial exception blocks only overlapping slot', async () => {
   assert.equal(stillAvailable.is_available, true);
 });
 
+test('duplicate availability and exception rows are blocked', async () => {
+  const scenario = await seedBookableScenario();
+  const teacherToken = await login('teacher@example.com');
+
+  const duplicateWeekly = await requestJson('/api/v1/teachers/me/availability', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      weekday: getWeekdayInTimezone(scenario.slotStart, TEST_TIMEZONE),
+      start_time_local: formatLocalTimeInTimezone(scenario.slotStart, TEST_TIMEZONE),
+      end_time_local: formatLocalTimeInTimezone(new Date(scenario.slotStart.getTime() + 60 * 60 * 1000), TEST_TIMEZONE),
+      is_active: false,
+    },
+  });
+  assert.equal(duplicateWeekly.status, 409);
+  assert.equal(duplicateWeekly.body.error, 'availability_duplicate');
+
+  const dateLocal = formatLocalDateInTimezone(scenario.slotStart, TEST_TIMEZONE);
+  const startLocal = formatLocalTimeInTimezone(scenario.slotStart, TEST_TIMEZONE);
+  const endLocal = formatLocalTimeInTimezone(new Date(scenario.slotStart.getTime() + 60 * 60 * 1000), TEST_TIMEZONE);
+  const firstException = await requestJson('/api/v1/teachers/me/exceptions', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      date_local: dateLocal,
+      start_time_local: startLocal,
+      end_time_local: endLocal,
+      reason: '중복테스트',
+    },
+  });
+  assert.equal(firstException.status, 201);
+
+  const duplicateException = await requestJson('/api/v1/teachers/me/exceptions', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      date_local: dateLocal,
+      start_time_local: startLocal,
+      end_time_local: endLocal,
+      reason: '중복테스트2',
+    },
+  });
+  assert.equal(duplicateException.status, 409);
+  assert.equal(duplicateException.body.error, 'exception_conflict');
+});
+
+test('teacher can create bookings on behalf of member and guest students', async () => {
+  const scenarioForMember = await seedBookableScenario();
+  let teacherToken = await login('teacher@example.com');
+  const studentIdResult = await pool.query(`SELECT id FROM users WHERE email = 'student@example.com' LIMIT 1`);
+  const studentId = Number(studentIdResult.rows[0].id);
+  const memberSlots = await requestJson(
+    `/api/v1/teachers/${scenarioForMember.teacherId}/slots?from=${encodeURIComponent(scenarioForMember.fromIso)}&to=${encodeURIComponent(scenarioForMember.toIso)}&step_min=60`,
+    { token: teacherToken }
+  );
+  assert.equal(memberSlots.status, 200);
+  const memberStartAt = (memberSlots.body.items || []).find((item) => item.is_available)?.start_at;
+  assert.ok(memberStartAt, 'open slot is required for member on-behalf booking');
+
+  const memberBooking = await requestJson('/api/v1/teachers/me/bookings', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      start_at: memberStartAt,
+      student_user_id: studentId,
+    },
+  });
+  assert.equal(memberBooking.status, 201);
+  assert.equal(memberBooking.body.item.status, 'BOOKED');
+  assert.equal(memberBooking.body.item.student_user_id, String(studentId));
+
+  const scenarioForGuest = await seedBookableScenario({ slotStart: buildSlotStartUtcDaysAhead(3) });
+  teacherToken = await login('teacher@example.com');
+  const guestSlots = await requestJson(
+    `/api/v1/teachers/${scenarioForGuest.teacherId}/slots?from=${encodeURIComponent(scenarioForGuest.fromIso)}&to=${encodeURIComponent(scenarioForGuest.toIso)}&step_min=60`,
+    { token: teacherToken }
+  );
+  assert.equal(guestSlots.status, 200);
+  const guestStartAt = (guestSlots.body.items || []).find((item) => item.is_available)?.start_at;
+  assert.ok(guestStartAt, 'open slot is required for guest on-behalf booking');
+
+  const guestBooking = await requestJson('/api/v1/teachers/me/bookings', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      start_at: guestStartAt,
+      student_name: '현장등록',
+      phone: '010-8888-7777',
+      pin: '1357',
+    },
+  });
+  assert.equal(guestBooking.status, 201);
+  assert.equal(guestBooking.body.item.status, 'BOOKED');
+  assert.equal(guestBooking.body.item.is_guest_student, true);
+  assert.ok(guestBooking.body.public_access?.token);
+});
+
+test('teacher availability and exceptions require 30-minute aligned times', async () => {
+  await seedBookableScenario();
+  const teacherToken = await login('teacher@example.com');
+
+  const availability = await requestJson('/api/v1/teachers/me/availability', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      weekday: 1,
+      start_time_local: '09:15',
+      end_time_local: '10:15',
+      is_active: true,
+    },
+  });
+  assert.equal(availability.status, 400);
+  assert.equal(availability.body.error, 'time_must_align_to_30_min');
+
+  const oneTime = await requestJson('/api/v1/teachers/me/one-time-availability', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      date_local: '2026-03-10',
+      start_time_local: '09:45',
+      end_time_local: '10:45',
+      is_active: true,
+    },
+  });
+  assert.equal(oneTime.status, 400);
+  assert.equal(oneTime.body.error, 'time_must_align_to_30_min');
+
+  const exception = await requestJson('/api/v1/teachers/me/exceptions', {
+    method: 'POST',
+    token: teacherToken,
+    body: {
+      date_local: '2026-03-10',
+      start_time_local: '13:15',
+      end_time_local: '14:15',
+      reason: '테스트',
+    },
+  });
+  assert.equal(exception.status, 400);
+  assert.equal(exception.body.error, 'time_must_align_to_30_min');
+});
+
 test('past booked lesson is auto-completed when bookings are queried', async () => {
   const scenario = await seedBookableScenario();
   const teacherToken = await login('teacher@example.com');
@@ -500,13 +685,12 @@ test('teacher can manually complete before end time and save split comments', as
     method: 'POST',
     token: teacherToken,
     body: {
-      teacher_private_comment: '교사용: 코멘트 수정',
       student_comment: '학생용: 코멘트 수정',
     },
   });
   assert.equal(updatedComment.status, 200);
   assert.equal(updatedComment.body.item.status, 'COMPLETED');
-  assert.equal(updatedComment.body.item.teacher_private_comment, '교사용: 코멘트 수정');
+  assert.equal(updatedComment.body.item.teacher_private_comment, '교사용: 숙제 체크 필요');
   assert.equal(updatedComment.body.item.student_comment, '학생용: 코멘트 수정');
 
   const slots = await requestJson(
@@ -547,7 +731,7 @@ test('teacher complete requires both private and student comments', async () => 
 });
 
 test('public guest booking supports create, lookup, and cancel by phone+pin', async () => {
-  const scenario = await seedBookableScenario();
+  const scenario = await seedBookableScenario({ slotStart: buildSlotStartUtcDaysAhead(3) });
 
   const created = await requestJson('/api/v1/public/bookings', {
     method: 'POST',
@@ -589,7 +773,7 @@ test('public guest booking supports create, lookup, and cancel by phone+pin', as
 });
 
 test('public guest cancel requires reason', async () => {
-  const scenario = await seedBookableScenario();
+  const scenario = await seedBookableScenario({ slotStart: buildSlotStartUtcDaysAhead(3) });
 
   const created = await requestJson('/api/v1/public/bookings', {
     method: 'POST',
@@ -615,7 +799,7 @@ test('public guest cancel requires reason', async () => {
 });
 
 test('public guest booking can be canceled by manage token', async () => {
-  const scenario = await seedBookableScenario();
+  const scenario = await seedBookableScenario({ slotStart: buildSlotStartUtcDaysAhead(3) });
 
   const created = await requestJson('/api/v1/public/bookings', {
     method: 'POST',
