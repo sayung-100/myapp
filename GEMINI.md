@@ -36,16 +36,16 @@ docker compose up --build -d backend frontend
 ```
 
 ## 5) 참고 문서
-- 일일 인수인계: `/Users/ndh/workspace/docs/handover-YYYY-MM-DD.md`
-- 작업 기록: `/Users/ndh/workspace/docs/worklog-2026-03-02.md`
+- 일일 인수인계: `/Volumes/Extreme SSD/workspace/docs/handover-YYYY-MM-DD.md`
+- 작업 기록: `/Volumes/Extreme SSD/workspace/docs/worklog-2026-03-02.md`
 
 ## 6) 2026-03-02 추가 반영 (최신)
 - 설정파일 기반 운영값 적용
-  - 파일: `/Users/ndh/workspace/backend/config/app.config.json`
-  - 로더: `/Users/ndh/workspace/backend/src/config.js`
+  - 파일: `/Volumes/Extreme SSD/workspace/backend/config/app.config.json`
+  - 로더: `/Volumes/Extreme SSD/workspace/backend/src/config.js`
   - 반영된 설정: 게스트 취소사유 필수, PIN 락아웃 정책, 완료 코멘트 필수 정책, 스케줄러 주기
 - DB 스키마 추가
-  - `/Users/ndh/workspace/db/migrations/009_guest_pin_lockout_and_comment_split.sql`
+  - `/Volumes/Extreme SSD/workspace/db/migrations/009_guest_pin_lockout_and_comment_split.sql`
   - `guest_students.pin_failed_attempts`, `guest_students.pin_locked_until`
   - `bookings.teacher_private_comment`, `bookings.student_comment`
 - API 정책
@@ -63,7 +63,7 @@ docker-compose build backend
 docker-compose run --rm backend npm test
 docker-compose up --build -d backend frontend
 docker-compose exec -T backend npm run -s migrate
-bash /Users/ndh/workspace/scripts/smoke-test-api.sh
+bash "/Volumes/Extreme SSD/workspace/scripts/smoke-test-api.sh"
 ```
 
 ## 8) 2026-03-06 추가 인수인계
@@ -90,3 +90,13 @@ bash /Users/ndh/workspace/scripts/smoke-test-api.sh
 - 버그 수정
   - 교사 예약 승인/취소 탭에서 거절/취소 미동작: 프론트 `cancelBooking` 분기 수정
   - 완료 수업 이력의 “완료시각” 표시 제거
+
+## 9) 2026-03-23 UI/UX 마감 참고
+- 기능 추가 없이 UI/UX 품질 마감 진행
+  - 개발자 노출 요소 제거 유지(로그 패널/토큰 노출/디버그 버튼 없음)
+  - 사용자 문구 통일(`Today` -> `오늘`, `This Week` -> `이번 주`)
+  - 접근성 보강(`aria-current`, `role=status`, 표 `scope`, `prefers-reduced-motion`, `prefers-contrast`)
+- 참고 문서
+  - QA 체크리스트: `/Volumes/Extreme SSD/workspace/docs/ui-qa-checklist-2026-03-23.md`
+  - Gemini 검수 주의사항: `/Volumes/Extreme SSD/workspace/docs/gemini-design-review-notes-2026-03-23.md`
+  - 회귀 스냅샷: `/Volumes/Extreme SSD/workspace/docs/regression-snapshots/2026-03-23`

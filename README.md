@@ -113,13 +113,17 @@ docker compose down
 - Codex 메모: `CODEX.md`
 - 일일 인수인계: `docs/handover-YYYY-MM-DD.md`
 - UI 리디자인 기록: `docs/ui-redesign-2026-02-24.md`
+- UI/UX QA 체크리스트: `docs/ui-qa-checklist-2026-03-23.md`
+- Gemini 디자인 검수 주의사항: `docs/gemini-design-review-notes-2026-03-23.md`
+- AI 앱 제작 회고(Notion/블로그 초안): `docs/notion-ai-app-build-case-study-2026-03-23.md`
+- AI 앱 제작 회고(Notion/블로그 완성본): `docs/notion-blog-full-nondev-ai-app-2026-03-23.md`
 
 매일 인수인계 스냅샷 생성:
 ```bash
-bash /Users/ndh/workspace/scripts/daily-handover.sh
+bash "/Volumes/Extreme SSD/workspace/scripts/daily-handover.sh"
 ```
 
 스모크 테스트까지 포함해 기록:
 ```bash
-RUN_SMOKE=1 bash /Users/ndh/workspace/scripts/daily-handover.sh
+RUN_SMOKE=1 bash "/Volumes/Extreme SSD/workspace/scripts/daily-handover.sh"
 ```

@@ -16,6 +16,6 @@
 3. 
 
 ## 참고 링크 / 파일
-- `/Users/ndh/workspace/README.md`
-- `/Users/ndh/workspace/GEMINI.md`
-- `/Users/ndh/workspace/CODEX.md`
+- `/Volumes/Extreme SSD/workspace/README.md`
+- `/Volumes/Extreme SSD/workspace/GEMINI.md`
+- `/Volumes/Extreme SSD/workspace/CODEX.md`

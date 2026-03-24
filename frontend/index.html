@@ -151,7 +151,7 @@
           <h3>로그인</h3>
           <form id="loginForm" class="grid">
             <div class="grid two">
-              <label>이메일 <input name="email" value="teacher@example.com" required /></label>
+              <label>아이디 <input name="login_id" value="teacher@example.com" required /></label>
               <label>비밀번호 <input name="password" type="password" value="password123!" required /></label>
             </div>
             <div class="actions">
@@ -167,6 +167,10 @@
           <h3>회원가입</h3>
           <form id="registerForm" class="grid">
             <div class="grid two">
+              <label>아이디 <input name="login_id" placeholder="teacher01" required /></label>
+              <label>휴대폰번호 <input name="phone" placeholder="01012345678" required /></label>
+            </div>
+            <div class="grid two">
               <label>이름 <input name="name" placeholder="테스터" required /></label>
               <label>역할
                 <select name="role">
@@ -175,10 +179,7 @@
                 </select>
               </label>
             </div>
-            <div class="grid two">
-              <label>이메일 <input name="email" type="email" placeholder="new@example.com" required /></label>
-              <label>비밀번호 <input name="password" type="password" minlength="8" required /></label>
-            </div>
+            <label>비밀번호 <input name="password" type="password" minlength="8" required /></label>
             <div class="actions">
               <button type="submit">회원가입</button>
               <button id="logoutBtn" class="danger" type="button">로그아웃</button>
@@ -307,12 +308,12 @@
       }
 
       document.getElementById('teacherPreset').addEventListener('click', () => {
-        loginForm.elements.email.value = 'teacher@example.com';
+        loginForm.elements.login_id.value = 'teacher@example.com';
         loginForm.elements.password.value = 'password123!';
       });
 
       document.getElementById('studentPreset').addEventListener('click', () => {
-        loginForm.elements.email.value = 'student@example.com';
+        loginForm.elements.login_id.value = 'student@example.com';
         loginForm.elements.password.value = 'password123!';
       });
 
@@ -337,7 +338,7 @@
           const form = formObject(loginForm);
           const result = await api('/api/v1/auth/login', {
             method: 'POST',
-            body: { email: form.email, password: form.password },
+            body: { login_id: form.login_id, password: form.password },
           });
           setAuth(result.token, result.user);
           redirectByRole(result.user?.role);
@@ -351,7 +352,8 @@
           const result = await api('/api/v1/auth/register', {
             method: 'POST',
             body: {
-              email: form.email,
+              login_id: form.login_id,
+              phone: form.phone,
               password: form.password,
               name: form.name,
               role: form.role,

@@ -3,6 +3,19 @@ set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:4000}"
 
+wait_for_backend() {
+  local max_try="${1:-30}"
+  local i
+  for i in $(seq 1 "$max_try"); do
+    if curl -fsS "$BASE_URL/health" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "[FAIL] backend health check timeout: $BASE_URL/health"
+  return 1
+}
+
 extract_token() {
   node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d); if(!j.token){process.exit(1)}; process.stdout.write(j.token);});"
 }
@@ -11,6 +24,10 @@ extract_json_path() {
   local expr="$1"
   node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d); const v=($expr); if(v===undefined||v===null){process.exit(1)}; process.stdout.write(String(v));});"
 }
+
+echo "[0/8] wait backend health"
+wait_for_backend 30
+echo "[OK] backend is ready"
 
 echo "[1/8] login teacher/student"
 TEACHER_TOKEN=$(curl -sS -X POST "$BASE_URL/api/v1/auth/login" \
@@ -21,10 +38,10 @@ STUDENT_TOKEN=$(curl -sS -X POST "$BASE_URL/api/v1/auth/login" \
   -d '{"email":"student@example.com","password":"password123!"}' | extract_token)
 echo "[OK] login complete"
 
-echo "[2/8] compute tomorrow date (Asia/Seoul)"
-TOMORROW_LOCAL=$(TZ=Asia/Seoul node -e "const n=new Date();const t=new Date(n.getTime()+24*60*60*1000);const y=t.getFullYear();const m=String(t.getMonth()+1).padStart(2,'0');const d=String(t.getDate()).padStart(2,'0');process.stdout.write(y+'-'+m+'-'+d);")
-WEEKDAY_LOCAL=$(TZ=Asia/Seoul node -e "const n=new Date();const t=new Date(n.getTime()+24*60*60*1000);process.stdout.write(String(t.getDay()));")
-echo "[OK] tomorrow=$TOMORROW_LOCAL weekday=$WEEKDAY_LOCAL"
+echo "[2/8] compute target date (+2 days, Asia/Seoul)"
+TARGET_LOCAL=$(TZ=Asia/Seoul node -e "const n=new Date();const t=new Date(n.getTime()+2*24*60*60*1000);const y=t.getFullYear();const m=String(t.getMonth()+1).padStart(2,'0');const d=String(t.getDate()).padStart(2,'0');process.stdout.write(y+'-'+m+'-'+d);")
+WEEKDAY_LOCAL=$(TZ=Asia/Seoul node -e "const n=new Date();const t=new Date(n.getTime()+2*24*60*60*1000);process.stdout.write(String(t.getDay()));")
+echo "[OK] target_date=$TARGET_LOCAL weekday=$WEEKDAY_LOCAL"
 
 echo "[3/8] ensure teacher availability"
 AVAIL_RES=$(curl -sS -w $'\n%{http_code}' -X POST "$BASE_URL/api/v1/teachers/me/availability" \
@@ -44,8 +61,8 @@ TEACHER_ID=$(printf '%s' "$TEACHERS_JSON" | extract_json_path "(j.items||[])[0]?
 echo "[OK] teacher_id=$TEACHER_ID"
 
 echo "[5/8] fetch slots"
-FROM="${TOMORROW_LOCAL}T00:00:00+09:00"
-TO="${TOMORROW_LOCAL}T23:59:00+09:00"
+FROM="${TARGET_LOCAL}T00:00:00+09:00"
+TO="${TARGET_LOCAL}T23:59:00+09:00"
 SLOTS_JSON=$(curl -sS -G "$BASE_URL/api/v1/teachers/$TEACHER_ID/slots" \
   -H "Authorization: Bearer $STUDENT_TOKEN" \
   --data-urlencode "from=$FROM" \

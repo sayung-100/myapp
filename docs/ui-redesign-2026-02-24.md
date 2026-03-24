@@ -51,11 +51,11 @@
   - 정책/제약 안내
 
 ## 6) 변경 파일
-- `/Users/ndh/workspace/frontend/index.html` (전면 리디자인 + 대시보드 지표/필터/Today 추가)
-- `/Users/ndh/workspace/frontend/guide.html` (신규 사용자 설명 페이지)
-- `/Users/ndh/workspace/frontend/Dockerfile` (`*.html` 복사로 가이드 페이지 배포 포함)
-- `/Users/ndh/workspace/README.md` (가이드 URL/리디자인 기록 문서 링크 추가)
-- `/Users/ndh/workspace/db/seeds/001_seed.sql` (시드 재적용 시 teacher_profiles 기본 정책 복구되도록 UPSERT 강화)
+- `/Volumes/Extreme SSD/workspace/frontend/index.html` (전면 리디자인 + 대시보드 지표/필터/Today 추가)
+- `/Volumes/Extreme SSD/workspace/frontend/guide.html` (신규 사용자 설명 페이지)
+- `/Volumes/Extreme SSD/workspace/frontend/Dockerfile` (`*.html` 복사로 가이드 페이지 배포 포함)
+- `/Volumes/Extreme SSD/workspace/README.md` (가이드 URL/리디자인 기록 문서 링크 추가)
+- `/Volumes/Extreme SSD/workspace/db/seeds/001_seed.sql` (시드 재적용 시 teacher_profiles 기본 정책 복구되도록 UPSERT 강화)
 
 ## 7) 후속 제안(다음 에이전트용)
 1. 사용자가 제공할 실제 레퍼런스 이미지(스크린샷/와이어프레임) 기반으로 UI 세부 조정
