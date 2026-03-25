@@ -12,7 +12,10 @@ async function run() {
   await client.connect();
 
   const migrationsDir = path.join(__dirname, '..', 'db', 'migrations');
-  const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter((f) => /^\d+.*\.sql$/i.test(f))
+    .sort();
 
   for (const file of files) {
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');

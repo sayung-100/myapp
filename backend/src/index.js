@@ -2407,6 +2407,10 @@ app.post('/api/v1/teachers/me/bookings', requireAuth, requireTeacher, async (req
       return res.status(400).json({ error: 'start_at is required (ISO datetime)' });
     }
 
+    if (req.body?.student_name !== undefined || req.body?.phone !== undefined || req.body?.pin !== undefined) {
+      return res.status(410).json({ error: 'guest_student_booking_disabled' });
+    }
+
     const profile = await getTeacherProfileById(req.auth.userId);
     if (!profile) {
       return res.status(404).json({ error: 'teacher_not_found' });
@@ -2419,10 +2423,6 @@ app.post('/api/v1/teachers/me/bookings', requireAuth, requireTeacher, async (req
     const slotDurationMin = Number(bookableSlot.duration_min);
     if (!Number.isInteger(slotDurationMin) || slotDurationMin <= 0) {
       return res.status(500).json({ error: 'invalid_slot_duration' });
-    }
-
-    if (req.body?.student_name !== undefined || req.body?.phone !== undefined || req.body?.pin !== undefined) {
-      return res.status(410).json({ error: 'guest_student_booking_disabled' });
     }
 
     const studentUserIdInput = parsePositiveInt(req.body?.student_user_id);
